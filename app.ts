@@ -1,6 +1,4 @@
 // import Modules
-
-require("dotenv").config();
 import express, { NextFunction, Request, Response, Application } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -19,7 +17,7 @@ app.use(
 );
 
 // Testing route
-app.get("/test", (req: Request, res: Response, next: NextFunction) => {
+app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
     res.status(200).json({
         success: true,
         message: "API is working",

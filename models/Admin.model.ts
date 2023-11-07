@@ -9,15 +9,13 @@ export interface IAdmin extends Document {
     username: string;
     email?: string;
     hashed_password: string;
-    role: "moderator" | "admin" | "superadmin";
+    role: "moderator" | "admin" | "superadmin" | "guest";
     status: boolean;
-    hash_salt?: string;
     avatar?: string;
 
     // Methods
     comparePassword: (enteredPassword: string) => Promise<boolean>;
     signAccessToken: () => string;
-    signRefreshToken: () => string;
 }
 
 const AdminSchema = new Schema<IAdmin>({
@@ -55,20 +53,17 @@ const AdminSchema = new Schema<IAdmin>({
         index: true,
     },
 
-    hash_salt: {
-        type: String,
-    },
-
     hashed_password: {
         type: String,
         required: [true, "Please provide a password"],
         minlength: [8, "Password must be at least 8 characters long"],
         maxlength: [50, "Password must be at most 50 characters long"],
+        select: false,
     },
 
     role: {
         type: String,
-        enum: ["moderator", "admin", "superadmin"],
+        enum: ["moderator", "admin", "superadmin", "guest"],
         default: "moderator",
     },
 
@@ -79,14 +74,16 @@ const AdminSchema = new Schema<IAdmin>({
 
     avatar: {
         type: String,
+        validate: [validator.isURL, "Please provide a valid URL"],
     },
 });
 
 // Encrypting password before saving user
-AdminSchema.pre<IAdmin>("save", async function (next) {
+AdminSchema.pre<IAdmin & { salt?: string }>("save", async function (next) {
     if (!this.isModified("hashed_password")) return next();
 
     const salt = await crypto.randomBytes(16).toString("hex");
+    this.salt = salt;
     this.hashed_password = await crypto.pbkdf2Sync(this.hashed_password, salt, 1000, 64, "sha512").toString("hex");
     next();
 });
@@ -102,11 +99,6 @@ AdminSchema.methods.comparePassword = async function (enteredPassword: string) {
 // Sign Access Token
 AdminSchema.methods.signAccessToken = function () {
     return jwt.sign({ id: this._id }, process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret, { expiresIn: "1d" });
-};
-
-// Sign Refresh Token
-AdminSchema.methods.signRefreshToken = function () {
-    return jwt.sign({ id: this._id }, process.env.ADMIN_REFRESH_TOKEN_JWT_SECRET as Secret, { expiresIn: "7d" });
 };
 
 const Admin: Model<IAdmin> = mongoose.model("Admin", AdminSchema);
