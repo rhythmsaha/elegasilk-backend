@@ -1,4 +1,5 @@
 import { Request } from "express";
+import { JwtPayload } from "jsonwebtoken";
 
 export interface IRequestAdminObject {
     _id: string;
@@ -15,6 +16,7 @@ declare global {
     namespace Express {
         interface Request {
             admin: IRequestAdminObject;
+            jwtPayload: JwtPayload;
         }
     }
 }

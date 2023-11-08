@@ -99,6 +99,11 @@ export const loginAdmin = asyncHandler(async (req: Request, res: Response, next:
         return next(new ErrorHandler("Invalid credentials", 401));
     }
 
+    // check if admin user status is active - status is boolean
+    if (!adminUser.status) {
+        return next(new ErrorHandler("Your account is not active. Please contact your administrator", 401));
+    }
+
     const isPasswordMatch = await adminUser.comparePassword(password);
 
     if (!isPasswordMatch) {
@@ -113,6 +118,23 @@ export const loginAdmin = asyncHandler(async (req: Request, res: Response, next:
     }
 
     // send JWT, and initial required parameteres of admin object as Response
+
+    const userData = {
+        _id: adminUser._id,
+        firstName: adminUser.firstName,
+        lastName: adminUser.lastName,
+        username: adminUser.username,
+        email: adminUser.email,
+        role: adminUser.role,
+        avatar: adminUser.avatar,
+    };
+
+    res.status(200).json({
+        success: true,
+        message: "Login successful",
+        user: userData,
+        accessToken,
+    });
 });
 
 // Logout admin
@@ -124,19 +146,130 @@ export const logoutAdmin = asyncHandler(async (req: Request, res: Response, next
 // Get session admin
 export const getAdminSession = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // Get JWT Token from header -> check if jwt can be decoded -> get admin id from jwt payload -> get admin from database -> check jwt expiry time left -> if jwt expiry time is less or equal to 24 hours then create new jwt -> send response
+
+    // jwt validation and receiving admin id will be handled by middleware
+
+    // Get User id from admin object in request
+    const adminId = req.admin?._id;
+
+    // Get admin from database
+    const admin = await Admin.findById(adminId);
+
+    // Check if admin exists
+    if (!admin) {
+        return next(new ErrorHandler("Admin not found", 404));
+    }
+
+    // Check if admin status is active
+    if (!admin.status) {
+        return next(new ErrorHandler("Your account is not active. Please contact your administrator", 401));
+    }
+
+    // generate new access token if expiry time is less than 24 hours
+    let accessToken = req.headers.authorization?.split(" ")[1];
+
+    // Send response
+    const userData = {
+        _id: admin._id,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
+        username: admin.username,
+        email: admin.email,
+        role: admin.role,
+        avatar: admin.avatar,
+    };
+
+    res.status(200).json({
+        success: true,
+        message: "Admin session",
+        user: userData,
+        accessToken,
+    });
 });
 
 // Update admin
 export const updateAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // get req.admin from middleware
-    // Get admin id from params
+    const adminRole = req.admin?.role;
+    const adminId = req.admin?._id;
+
+    // Get update User id from params
+    const updateAdminId = req.params.id;
+
     // Get fields to update from body {firstName, lastName, username, email, role, avatar, status}
+    const { firstName, lastName, username, email, role, avatar, status }: IAdmin = req.body;
+
     // Check if admin exists
-    // Moderators are not allowed to update any other user
-    // Only super admin can update another superAdmin and admin
-    // Only admin & super admin can update a moderator
-    // Update admin
-    // Send response
+    const admin = await Admin.findById(updateAdminId);
+
+    if (!admin) {
+        return next(new ErrorHandler("Admin not found", 404));
+    }
+
+    // Check if requested admin is super admin and existing admin role is super admin
+    if (adminRole === "superadmin" && admin.role === "superadmin") {
+        admin.firstName = firstName;
+        admin.lastName = lastName;
+        admin.username = username;
+        admin.email = email;
+        admin.role = role;
+        admin.avatar = avatar;
+        admin.status = status;
+    }
+    // Check if requested admin is admin and existing admin role is admin
+    else if (adminRole === "admin" && admin.role === "admin") {
+        if (adminId === updateAdminId) {
+            admin.firstName = firstName;
+            admin.lastName = lastName;
+            admin.username = username;
+            admin.email = email;
+            admin.avatar = avatar;
+            admin.status = status;
+        } else {
+            return next(new ErrorHandler("Admin not allowed to update another admin", 403));
+        }
+    }
+    // Check if requested admin is admin and existing admin role is super admin
+    else if (adminRole === "admin" && admin.role === "superadmin") {
+        return next(new ErrorHandler("Admin not allowed to update superadmin", 403));
+    }
+    // Check if requested admin is admin and existing admin role is moderator
+    else if (adminRole === "admin" && admin.role === "moderator") {
+        if (adminId === updateAdminId) {
+            admin.firstName = firstName;
+            admin.lastName = lastName;
+            admin.username = username;
+            admin.email = email;
+            admin.avatar = avatar;
+            admin.status = status;
+        } else {
+            return next(new ErrorHandler("Admin not allowed to update another moderator", 403));
+        }
+    }
+    // Check if requested admin is moderator and existing admin role is moderator
+    else if (adminRole === "moderator" && admin.role === "moderator") {
+        if (adminId === updateAdminId) {
+            admin.firstName = firstName;
+            admin.lastName = lastName;
+            admin.username = username;
+            admin.email = email;
+            admin.avatar = avatar;
+            admin.status = status;
+        } else {
+            return next(new ErrorHandler("Moderator not allowed to update another moderator", 403));
+        }
+    }
+    // Check if requested admin is moderator and existing admin role is admin or super admin
+    else if (adminRole === "moderator" && (admin.role === "admin" || admin.role === "superadmin")) {
+        return next(new ErrorHandler("Moderator not allowed to update admin or superadmin", 403));
+    }
+
+    await admin.save();
+
+    res.status(200).json({
+        success: true,
+        data: admin,
+    });
 });
 
 // Delete admin

@@ -23,6 +23,10 @@ export const authorizeAccessToken = (secret: Secret) => {
                 _id: decoded._id,
             };
 
+            req.jwtPayload = {
+                ...decoded,
+            };
+
             next();
         } catch (error: any) {
             return next(new ErrorHandler("Please login to access this resource", 401));
