@@ -5,6 +5,8 @@ import jwt, { Secret, JwtPayload } from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import validator from "validator";
 import { validateStrongPassword } from "../utils/validate";
+import { createAdminPasswordResetToken } from "../services/admin/createTokens";
+import { validateAdminPasswordResetToken } from "../services/admin/validateTokens";
 
 //  Create new admin
 interface ICreateAdminInput extends IAdmin {
@@ -187,88 +189,241 @@ export const getAdminSession = asyncHandler(async (req: Request, res: Response, 
     });
 });
 
-// Update admin
-export const updateAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // get req.admin from middleware
-    const adminRole = req.admin?.role;
+// Update logged in admin User profile
+export const updateSelfProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // Middleware would handle getting user id from jwt token
+    // Middleware would handle roles and permissions
+
+    // Get admin id from admin object in request
+    const adminId = req.admin?._id;
+    // Get fields to update from body {firstName, lastName, username, email, avatar}
+    const { firstName, lastName, username, email, avatar }: IAdmin = req.body;
+
+    // Update admin profile in database
+    const updateAdmin = await Admin.findByIdAndUpdate(
+        adminId,
+        { firstName, lastName, username, email, avatar },
+        { new: true }
+    );
+
+    // Send response
+    const userData = {
+        _id: updateAdmin?._id,
+        firstName: updateAdmin?.firstName,
+        lastName: updateAdmin?.lastName,
+        username: updateAdmin?.username,
+        email: updateAdmin?.email,
+        role: updateAdmin?.role,
+        avatar: updateAdmin?.avatar,
+    };
+
+    res.status(200).json({
+        success: true,
+        message: "Profile updated successfully",
+        user: userData,
+    });
+});
+
+// Delete logged in admin User profile
+export const deleteSelfProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // Middleware would handle getting user id from jwt token & handle roles and permissions.
+
+    // Get admin id from admin object in request
     const adminId = req.admin?._id;
 
+    // Delete admin profile in database
+    await Admin.findByIdAndDelete(adminId);
+
+    // Send response
+    res.status(200).json({
+        success: true,
+        message: "User deleted successfully",
+    });
+});
+
+// update logged in admin password
+export const updateSelfPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // Middleware would handle getting user id from jwt token & handle roles and permissions.
+
+    // Get admin id from admin object in request
+    const adminId = req.admin?._id;
+
+    // Get fields to update from body {currentPassword, newPassword}
+    const { currentPassword, newPassword } = req.body;
+
+    // Validate if password is strong (8 characters, including 1 uppercase letter, 1 lowercase letter, 1 number, and 1 symbol)
+    validateStrongPassword(newPassword);
+
+    // Check if admin exists
+    const admin = await Admin.findById(adminId).select("+hashed_password");
+    if (!admin) return next(new ErrorHandler("Admin not found", 404));
+
+    // Check if current password matches
+    const isPasswordMatch = await admin.comparePassword(currentPassword);
+    if (!isPasswordMatch) return next(new ErrorHandler("Current password is incorrect", 400));
+
+    // Update admin
+    admin.hashed_password = newPassword;
+    await admin.save();
+
+    // generate new token
+    const accessToken = admin.signAccessToken();
+
+    // Send response
+    res.status(200).json({
+        success: true,
+        message: "Password updated successfully",
+        accessToken,
+    });
+});
+
+// forgot password
+export const forgotPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // users can send email or username to reset password
+    // get email or username from body
+    const { emailOrUsername } = req.body;
+
+    // validate if email or username is provided
+    if (!emailOrUsername) {
+        return next(new ErrorHandler("Please provide email or username", 400));
+    }
+
+    // validate if email or username is valid
+    if (!validator.isEmail(emailOrUsername) && !validator.isAlphanumeric(emailOrUsername)) {
+        return next(new ErrorHandler("Please provide valid email or username", 400));
+    }
+
+    // check if email or username exists in database
+    const user = await Admin.findOne({ $or: [{ email: emailOrUsername }, { username: emailOrUsername }] });
+
+    // if user doesn't exist then send response to contact upper management to reset password
+    if (!user) return next(new ErrorHandler("User not found", 404));
+
+    // if user exists then generate otp
+    const token = await createAdminPasswordResetToken();
+
+    // send response
+    res.status(200).json({
+        success: true,
+        message: "Password reset code sent to email",
+        token,
+    });
+});
+
+// reset password
+export const resetPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // validate if token is provided in params
+    const token = req.params.token;
+
+    if (!token) return next(new ErrorHandler("Please provide token", 400));
+
+    // get password from body
+    const { password } = req.body;
+
+    // validate if password is strong
+    validateStrongPassword(password);
+
+    // check if token valid
+    const isTokenValid = await validateAdminPasswordResetToken(token);
+
+    if (!isTokenValid) return next(new ErrorHandler("Invalid token", 400));
+
+    // if token exists then get admin from database
+    const user = await Admin.findOne({});
+
+    // update admin password
+    // send response
+});
+
+// ------------------------------------------------------------------------------------------------------------------------------------
+
+// Update admin
+export const updateAdminUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // get req.admin from middleware
+    const requestedUserRole = req.admin?.role;
+    const requestedUserId = req.admin?._id;
+
     // Get update User id from params
-    const updateAdminId = req.params.id;
+    const existingUserId = req.params.id;
+
+    //  Send error if requested user id and existing user id are same
+    if (requestedUserId === existingUserId) {
+        return next(new ErrorHandler("You cannot update your own user", 403));
+    }
 
     // Get fields to update from body {firstName, lastName, username, email, role, avatar, status}
     const { firstName, lastName, username, email, role, avatar, status }: IAdmin = req.body;
 
     // Check if admin exists
-    const admin = await Admin.findById(updateAdminId);
+    const existingUser = await Admin.findById(existingUserId);
 
-    if (!admin) {
-        return next(new ErrorHandler("Admin not found", 404));
-    }
-
-    // Check if requested admin is super admin and existing admin role is super admin
-    if (adminRole === "superadmin" && admin.role === "superadmin") {
-        admin.firstName = firstName;
-        admin.lastName = lastName;
-        admin.username = username;
-        admin.email = email;
-        admin.role = role;
-        admin.avatar = avatar;
-        admin.status = status;
-    }
-    // Check if requested admin is admin and existing admin role is admin
-    else if (adminRole === "admin" && admin.role === "admin") {
-        if (adminId === updateAdminId) {
-            admin.firstName = firstName;
-            admin.lastName = lastName;
-            admin.username = username;
-            admin.email = email;
-            admin.avatar = avatar;
-            admin.status = status;
-        } else {
-            return next(new ErrorHandler("Admin not allowed to update another admin", 403));
-        }
-    }
-    // Check if requested admin is admin and existing admin role is super admin
-    else if (adminRole === "admin" && admin.role === "superadmin") {
-        return next(new ErrorHandler("Admin not allowed to update superadmin", 403));
-    }
-    // Check if requested admin is admin and existing admin role is moderator
-    else if (adminRole === "admin" && admin.role === "moderator") {
-        if (adminId === updateAdminId) {
-            admin.firstName = firstName;
-            admin.lastName = lastName;
-            admin.username = username;
-            admin.email = email;
-            admin.avatar = avatar;
-            admin.status = status;
-        } else {
-            return next(new ErrorHandler("Admin not allowed to update another moderator", 403));
-        }
-    }
-    // Check if requested admin is moderator and existing admin role is moderator
-    else if (adminRole === "moderator" && admin.role === "moderator") {
-        if (adminId === updateAdminId) {
-            admin.firstName = firstName;
-            admin.lastName = lastName;
-            admin.username = username;
-            admin.email = email;
-            admin.avatar = avatar;
-            admin.status = status;
-        } else {
-            return next(new ErrorHandler("Moderator not allowed to update another moderator", 403));
-        }
-    }
-    // Check if requested admin is moderator and existing admin role is admin or super admin
-    else if (adminRole === "moderator" && (admin.role === "admin" || admin.role === "superadmin")) {
-        return next(new ErrorHandler("Moderator not allowed to update admin or superadmin", 403));
+    if (!existingUser) {
+        return next(new ErrorHandler("User not found", 404));
     }
 
-    await admin.save();
+    const existingUserRole = existingUser?.role;
+
+    // check if requested user is super admin
+    if (requestedUserRole === "superadmin") {
+        existingUser.firstName = firstName;
+        existingUser.lastName = lastName;
+        existingUser.username = username;
+        existingUser.email = email;
+        existingUser.role = role;
+        existingUser.avatar = avatar;
+        existingUser.status = status;
+    }
+    // Check if requested user is admin
+    else if (requestedUserRole === "admin") {
+        // check if existing user is super admin
+        if (existingUserRole === "superadmin") {
+            return next(new ErrorHandler("You cannot update a superadmin", 403));
+        }
+        // check if existing user is admin and send error
+        else if (existingUserRole === "admin") {
+            return next(new ErrorHandler("You cannot update another admin", 403));
+        }
+        // check if existing user is moderator
+        else if (existingUserRole === "moderator") {
+            //   admins can not update role of existing moderator
+            if (role) {
+                return next(new ErrorHandler("You cannot update role of existing moderator", 403));
+            }
+
+            existingUser.firstName = firstName;
+            existingUser.lastName = lastName;
+            existingUser.username = username;
+            existingUser.email = email;
+            existingUser.avatar = avatar;
+            existingUser.status = status;
+        } else {
+            return next(new ErrorHandler("You are not permitted for updates", 400));
+        }
+    }
+    // No other user can update any other user
+    else {
+        return next(new ErrorHandler("You are not permitted for updates", 400));
+    }
+
+    // Update admin
+    const updatedUser = await existingUser.save();
+
+    // Send response
+    const userData = {
+        _id: updatedUser._id,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        avatar: updatedUser.avatar,
+        status: updatedUser.status,
+    };
 
     res.status(200).json({
         success: true,
-        data: admin,
+        message: "User updated successfully",
+        user: userData,
     });
 });
 
@@ -302,46 +457,4 @@ export const getAdmin = asyncHandler(async (req: Request, res: Response, next: N
     // Only admin & super admin can get a moderator
     // Fetch admin from database
     // Send response
-});
-
-// update logged in admin profile
-export const updateAdminProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // get req.admin from middleware
-    // Get fields to update from body {firstName, lastName, username, email, avatar}
-    // Check if admin exists
-    // Update admin
-    // Send response
-});
-
-// update logged in admin password
-export const updateAdminPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // get req.admin from middleware
-    // Get fields to update from body {currentPassword, newPassword}
-    // Check if admin exists
-    // Validate if password is strong (8 characters, including 1 uppercase letter, 1 lowercase letter, 1 number, and 1 symbol)
-    // Check if current password matches
-    // Update admin
-    // Send response
-});
-
-// forgot password
-export const forgotPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // check if request body is email or username
-    // if username then check if admin and email exists
-    // if email doens't exist in database then send response to contact upper management to reset password
-    // if email exists then generate reset token and send email to admin with password reset link
-    // send response to check email for password reset link
-});
-
-// reset password
-export const resetPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // get token from params
-    // get password from body
-    // validate if password is strong
-    // check if token exists in database
-    // if token exists then get admin id from token
-    // if token doesn't exist then send response to contact upper management to reset password
-    // if token exists then get admin from database
-    // update admin password
-    // send response
 });
