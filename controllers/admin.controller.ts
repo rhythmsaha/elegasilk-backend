@@ -5,8 +5,8 @@ import jwt, { Secret, JwtPayload } from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import validator from "validator";
 import { validateStrongPassword } from "../utils/validate";
-import { createAdminPasswordResetToken } from "../services/admin/createTokens";
-import { validateAdminPasswordResetToken } from "../services/admin/validateTokens";
+import { createAdminPasswordResetCode } from "../services/admin/createTokens";
+import { validateAdminPasswordResetCode, verifyResetPasswordService } from "../services/admin/validateTokens";
 
 //  Create new admin
 interface ICreateAdminInput extends IAdmin {
@@ -300,7 +300,9 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response, n
     if (!user) return next(new ErrorHandler("User not found", 404));
 
     // if user exists then generate otp
-    const token = await createAdminPasswordResetToken();
+    const token = await createAdminPasswordResetCode(user._id);
+
+    // Send Email to user with token
 
     // send response
     res.status(200).json({
@@ -310,12 +312,31 @@ export const forgotPassword = asyncHandler(async (req: Request, res: Response, n
     });
 });
 
+// verify reset password code
+export const verifyResetPasswordCode = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const sessionData = await verifyResetPasswordService(req, next);
+
+    // if session data is not valid then send error
+    if (!sessionData) return next(new ErrorHandler("Access Denied!", 400));
+
+    // send response
+    res.status(200).json({
+        success: true,
+        message: "code verified",
+        data: {
+            code: sessionData.code,
+            token: sessionData.token,
+        },
+    });
+});
+
 // reset password
 export const resetPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // validate if token is provided in params
-    const token = req.params.token;
+    // verify reset password code with service
+    const sessionData = await verifyResetPasswordService(req, next);
 
-    if (!token) return next(new ErrorHandler("Please provide token", 400));
+    // if session data is not valid then send error
+    if (!sessionData) return next(new ErrorHandler("Access Denied!", 400));
 
     // get password from body
     const { password } = req.body;
@@ -323,16 +344,23 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
     // validate if password is strong
     validateStrongPassword(password);
 
-    // check if token valid
-    const isTokenValid = await validateAdminPasswordResetToken(token);
-
-    if (!isTokenValid) return next(new ErrorHandler("Invalid token", 400));
-
     // if token exists then get admin from database
-    const user = await Admin.findOne({});
+    const user = await Admin.findById(sessionData.userId);
+
+    // if user doesn't exist then send response error
+    if (!user) return next(new ErrorHandler("User not found", 404));
 
     // update admin password
+    user.hashed_password = password;
+
+    // save admin
+    await user.save();
+
     // send response
+    res.status(200).json({
+        success: true,
+        message: "Password reset successfully",
+    });
 });
 
 // ------------------------------------------------------------------------------------------------------------------------------------
@@ -430,31 +458,104 @@ export const updateAdminUser = asyncHandler(async (req: Request, res: Response, 
 // Delete admin
 export const deleteAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // get req.admin from middleware
-    // Get admin id from params
+    const requestedUserRole = req.admin?.role;
+    const requestedUserId = req.admin?._id;
+
+    // Get update User id from params
+    const existingUserId = req.params.id;
+
+    //  Send error if requested user id and existing user id are same
+    if (requestedUserId === existingUserId) return next(new ErrorHandler("unauthorized!", 403));
+
     // Check if admin exists
+    const existingUser = await Admin.findById(existingUserId);
+    if (!existingUser) return next(new ErrorHandler("User not found", 404));
+    const existingUserRole = existingUser?.role;
+
     // Moderators are not allowed to delete any other user
-    // Only super admin can delete another superAdmin and admin
-    // Only admin & super admin can delete a moderator
+    if (requestedUserRole === "moderator") return next(new ErrorHandler("unauthorized!", 403));
+
+    // admins can not delete super admin
+    if (requestedUserRole === "admin" && existingUserRole === "superadmin")
+        return next(new ErrorHandler("You cannot delete a superadmin", 403));
+
+    // admins can not delete another admin
+    if (requestedUserRole === "admin" && existingUserRole === "admin")
+        return next(new ErrorHandler("You cannot delete another admin", 403));
+
     // Delete admin
+    const deleted = await existingUser.deleteOne();
+
+    if (!deleted) return next(new ErrorHandler("Something went wrong", 500));
+
     // Send response
+    res.status(200).json({
+        success: true,
+        message: "User deleted successfully",
+    });
 });
 
 // Get all admins
 export const getAllAdmins = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // get req.admin from middleware
+    const requestedUserRole = req.admin?.role;
+
+    const users = await Admin.find();
+
+    if (!users) return next(new ErrorHandler("Something went wrong", 500));
+    if (users.length === 0) return next(new ErrorHandler("No users found", 404));
+
+    let usersArr = [] as IAdmin[];
+
     // only super admin can get all admins
+    if (requestedUserRole === "superadmin") {
+        usersArr = users;
+    }
+
     // admins are not allowed to get super admins but get all other admins and moderators
-    // moderators are not allowed to get all admins
-    // Fetch admins from database
+    if (requestedUserRole === "admin") {
+        usersArr = users.filter((user) => user.role !== "superadmin");
+    }
+
+    // send response
+    res.status(200).json({
+        success: true,
+        message: "All users",
+        users: usersArr,
+    });
 });
 
 // Get single admin
 export const getAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // get req.admin from middleware
-    // Get admin id from params
-    // Check if admin exists
+    const requestedUserRole = req.admin?.role;
+
+    // Get user id from params
+    const existingUserId = req.params.id;
+
     // Moderators are not allowed to get any other user
+    if (requestedUserRole === "moderator") return next(new ErrorHandler("unauthorized!", 403));
+
     // Only super admin can get another superAdmin and admin
-    // Only admin & super admin can get a moderator
-    // Fetch admin from database
+    if (requestedUserRole === "admin" && existingUserId === "superadmin")
+        return next(new ErrorHandler("You cannot get a superadmin", 403));
+
+    if (requestedUserRole === "admin" && existingUserId === "admin")
+        return next(new ErrorHandler("You cannot get another admin", 403));
+
+    const user = await Admin.findById(existingUserId);
+
+    if (!user) return next(new ErrorHandler("User not found", 404));
+
     // Send response
+    const userData = {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        avatar: user.avatar,
+        status: user.status,
+    };
 });
