@@ -82,16 +82,15 @@ const AdminSchema = new Schema<IAdmin>({
 AdminSchema.pre<IAdmin & { salt?: string }>("save", async function (next) {
     if (!this.isModified("hashed_password")) return next();
 
-    const salt = await crypto.randomBytes(16).toString("hex");
-    this.salt = salt;
-    this.hashed_password = await crypto.pbkdf2Sync(this.hashed_password, salt, 1000, 64, "sha512").toString("hex");
+    const salt = process.env.PASSWORD_HASH_SALT;
+    this.hashed_password = await crypto.pbkdf2Sync(this.hashed_password, salt!, 1000, 64, "sha512").toString("hex");
     next();
 });
 
 // Compare user password with hashed password in database
 AdminSchema.methods.comparePassword = async function (enteredPassword: string) {
     const hashedPassword = await crypto
-        .pbkdf2Sync(enteredPassword, this.hash_salt!, 1000, 64, "sha512")
+        .pbkdf2Sync(enteredPassword, process.env.PASSWORD_HASH_SALT!, 1000, 64, "sha512")
         .toString("hex");
     return this.hashed_password === hashedPassword;
 };

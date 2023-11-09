@@ -17,10 +17,11 @@ import {
     verifyResetPasswordCode,
 } from "../controllers/admin.controller";
 import { Secret } from "jsonwebtoken";
+require("dotenv").config();
 
 const adminRouter = express.Router();
 
-const adminSecret = process.env.ADMIN_ACCESS_TOKEN_SECRET as Secret;
+const adminSecret = process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret;
 
 // Register new admin -> /api/admin/create-new
 adminRouter.post(
@@ -30,43 +31,53 @@ adminRouter.post(
     registerNewAdmin
 );
 
-// Login admin -> /api/admin/login
+// Login admin -> /api/admin/login -> post
 adminRouter.post("/login", loginAdmin);
 
-// logout admin -> /api/admin/logout
-adminRouter.post("/logout", logoutAdmin);
+// logout admin -> /api/admin/logout -> post
+adminRouter.post("/logout", authorizeAccessToken(adminSecret), logoutAdmin);
 
-// get current admin session -> /api/admin/session
+// get current admin session -> /api/admin/session -> get
 adminRouter.get("/session", authorizeAccessToken(adminSecret), getAdminSession);
 
-// update self profile -> /api/admin/profile
-adminRouter.put("/profile", authorizeAccessToken(adminSecret), updateSelfProfile);
+// Update logged in admin User profile -> /api/admin/user -> put
+adminRouter.put("/user", authorizeAccessToken(adminSecret), updateSelfProfile);
 
-// delete self profile -> /api/admin/profile
-adminRouter.delete("/profile", authorizeAccessToken(adminSecret), deleteSelfProfile);
+// delete logged in admin User profile -> /api/admin/user -> delete
+adminRouter.delete("/user", authorizeAccessToken(adminSecret), deleteSelfProfile);
 
-// update self password -> /api/admin/password
+// update logged in admin User password -> /api/admin/password -> put
 adminRouter.put("/password", authorizeAccessToken(adminSecret), updateSelfPassword);
 
-// forgot password -> /api/admin/forgot-password
-adminRouter.post("/forgot-password", forgotPassword);
+// forgot password -> /api/admin/forgot-password/:query -> get
+adminRouter.get("/forget-password", forgotPassword);
 
-// verifyResetPasswordCode -> /api/admin/reset-password
+// verifyResetPasswordCode -> /api/admin/reset-password -> post
 adminRouter.post("/reset-password", verifyResetPasswordCode);
 
-// reset password -> /api/admin/reset-password
+// reset password -> /api/admin/reset-password -> put
 adminRouter.put("/reset-password", resetPassword);
 
-// Update admin user -> /api/admin/user
-adminRouter.put("/user", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), updateAdminUser);
+// Update admin user -> /api/admin/user/:id
+adminRouter.put(
+    "/user/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    updateAdminUser
+);
 
-// delete admin user -> /api/admin/user
-adminRouter.delete("/user", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), deleteAdmin);
+// delete admin user -> /api/admin/user/:id -> delete
+adminRouter.delete(
+    "/user/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    deleteAdmin
+);
 
-// get all admin users -> /api/admin/users
+// get all admin users -> /api/admin/users  -> get
 adminRouter.get("/users", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), getAllAdmins);
 
-// get single admin user -> /api/admin/user/:id
+// get single admin user -> /api/admin/user/:id -> get
 adminRouter.get("/user/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), getAdmin);
 
 export default adminRouter;

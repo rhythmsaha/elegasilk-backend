@@ -6,7 +6,8 @@ import { Request, Response, NextFunction } from "express";
 import validator from "validator";
 import { validateStrongPassword } from "../utils/validate";
 import { createAdminPasswordResetCode } from "../services/admin/createTokens";
-import { validateAdminPasswordResetCode, verifyResetPasswordService } from "../services/admin/validateTokens";
+import { verifyResetPasswordService } from "../services/admin/validateTokens";
+import { redis } from "../lib/redis";
 
 //  Create new admin
 interface ICreateAdminInput extends IAdmin {
@@ -17,7 +18,7 @@ export const registerNewAdmin = asyncHandler(async (req: Request, res: Response,
     const { firstName, lastName, username, email, password, role, avatar, status }: ICreateAdminInput = req.body;
 
     try {
-        //    Check user role
+        // Check user role
         const adminRole = req.admin?.role;
 
         // Only super admin can create another superAdmin and admin
@@ -98,7 +99,7 @@ export const loginAdmin = asyncHandler(async (req: Request, res: Response, next:
     const adminUser = await Admin.findOne({ username }).select("+hashed_password");
 
     if (!adminUser) {
-        return next(new ErrorHandler("Invalid credentials", 401));
+        return next(new ErrorHandler("Invalid credentials!", 401));
     }
 
     // check if admin user status is active - status is boolean
@@ -109,18 +110,20 @@ export const loginAdmin = asyncHandler(async (req: Request, res: Response, next:
     const isPasswordMatch = await adminUser.comparePassword(password);
 
     if (!isPasswordMatch) {
-        return next(new ErrorHandler("Invalid credentials", 401));
+        return next(new ErrorHandler("Invalid credentials!", 401));
     }
 
     // generate jwt {_id}
     const accessToken = adminUser.signAccessToken();
 
     if (!accessToken) {
-        return next(new ErrorHandler("Something went wrong", 500));
+        return next(new ErrorHandler("Something went wrong!", 500));
     }
 
-    // send JWT, and initial required parameteres of admin object as Response
+    // set cache
+    redis.set(`admin-user:${adminUser._id}`, JSON.stringify(adminUser), "EX", 60 * 60 * 24 * 30);
 
+    // send JWT, and initial required parameteres of admin object as Response
     const userData = {
         _id: adminUser._id,
         firstName: adminUser.firstName,
@@ -142,7 +145,15 @@ export const loginAdmin = asyncHandler(async (req: Request, res: Response, next:
 // Logout admin
 export const logoutAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // remove jwt from redis cache
+    const userId = req.admin?._id;
+
+    redis.del(`admin-user:${userId}`);
+
     // send response
+    res.status(200).json({
+        success: true,
+        message: "Logout successful",
+    });
 });
 
 // Get session admin
@@ -154,33 +165,59 @@ export const getAdminSession = asyncHandler(async (req: Request, res: Response, 
     // Get User id from admin object in request
     const adminId = req.admin?._id;
 
-    // Get admin from database
-    const admin = await Admin.findById(adminId);
+    // Check if admin exists in redis cache
+    let cacheData = await redis.get(`admin-user:${adminId}`);
 
-    // Check if admin exists
-    if (!admin) {
-        return next(new ErrorHandler("Admin not found", 404));
+    let userData: any;
+
+    if (!cacheData) {
+        // Get admin from database
+        const admin = await Admin.findById(adminId);
+
+        // Check if admin exists
+        if (!admin) {
+            return next(new ErrorHandler("Admin not found", 404));
+        }
+
+        // Check if admin status is active
+        if (!admin.status) {
+            return next(new ErrorHandler("Your account is not active. Please contact your administrator", 401));
+        }
+
+        userData = {
+            _id: admin._id,
+            firstName: admin.firstName,
+            lastName: admin.lastName,
+            username: admin.username,
+            email: admin.email,
+            role: admin.role,
+            avatar: admin.avatar,
+        };
+
+        redis.set(`admin-user:${admin._id}`, JSON.stringify(admin), "EX", 60 * 60 * 24 * 30);
+    } else {
+        const admin = JSON.parse(cacheData) as IAdmin;
+
+        if (!admin.status) {
+            return next(new ErrorHandler("Your account is not active. Please contact your administrator", 401));
+        }
+
+        userData = {
+            _id: admin._id,
+            firstName: admin.firstName,
+            lastName: admin.lastName,
+            username: admin.username,
+            email: admin.email,
+            role: admin.role,
+            avatar: admin.avatar,
+        };
+
+        redis.set(`admin-user:${admin._id}`, JSON.stringify(admin), "EX", 60 * 60 * 24 * 30);
     }
 
-    // Check if admin status is active
-    if (!admin.status) {
-        return next(new ErrorHandler("Your account is not active. Please contact your administrator", 401));
-    }
-
-    // generate new access token if expiry time is less than 24 hours
-    let accessToken = req.headers.authorization?.split(" ")[1];
+    let accessToken = new Admin({ _id: userData._id, role: userData.role }).signAccessToken();
 
     // Send response
-    const userData = {
-        _id: admin._id,
-        firstName: admin.firstName,
-        lastName: admin.lastName,
-        username: admin.username,
-        email: admin.email,
-        role: admin.role,
-        avatar: admin.avatar,
-    };
-
     res.status(200).json({
         success: true,
         message: "Admin session",
@@ -217,6 +254,10 @@ export const updateSelfProfile = asyncHandler(async (req: Request, res: Response
         avatar: updateAdmin?.avatar,
     };
 
+    if (!updateAdmin) return next(new ErrorHandler("Something went wrong", 500));
+
+    redis.set(`admin-user:${updateAdmin._id}`, JSON.stringify(updateAdmin), "EX", 60 * 60 * 24 * 30);
+
     res.status(200).json({
         success: true,
         message: "Profile updated successfully",
@@ -232,6 +273,7 @@ export const deleteSelfProfile = asyncHandler(async (req: Request, res: Response
     const adminId = req.admin?._id;
 
     // Delete admin profile in database
+    await redis.del(`admin-user:${adminId}`);
     await Admin.findByIdAndDelete(adminId);
 
     // Send response
@@ -264,7 +306,11 @@ export const updateSelfPassword = asyncHandler(async (req: Request, res: Respons
 
     // Update admin
     admin.hashed_password = newPassword;
-    await admin.save();
+    const saveAdmin = await admin.save();
+
+    if (!saveAdmin) return next(new ErrorHandler("Something went wrong", 500));
+
+    redis.set(`admin-user:${saveAdmin._id}`, JSON.stringify(saveAdmin), "EX", 60 * 60 * 24 * 30);
 
     // generate new token
     const accessToken = admin.signAccessToken();
@@ -281,7 +327,7 @@ export const updateSelfPassword = asyncHandler(async (req: Request, res: Respons
 export const forgotPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // users can send email or username to reset password
     // get email or username from body
-    const { emailOrUsername } = req.body;
+    const emailOrUsername = req.params.query;
 
     // validate if email or username is provided
     if (!emailOrUsername) {
@@ -363,7 +409,7 @@ export const resetPassword = asyncHandler(async (req: Request, res: Response, ne
     });
 });
 
-// ------------------------------------------------------------------------------------------------------------------------------------
+// ------------------------------------------------------------------
 
 // Update admin
 export const updateAdminUser = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -448,6 +494,8 @@ export const updateAdminUser = asyncHandler(async (req: Request, res: Response, 
         status: updatedUser.status,
     };
 
+    redis.set(`admin-user:${updatedUser._id}`, JSON.stringify(updatedUser), "EX", 60 * 60 * 24 * 30);
+
     res.status(200).json({
         success: true,
         message: "User updated successfully",
@@ -484,6 +532,7 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response, next
         return next(new ErrorHandler("You cannot delete another admin", 403));
 
     // Delete admin
+    await redis.del(`admin-user:${existingUser._id}`);
     const deleted = await existingUser.deleteOne();
 
     if (!deleted) return next(new ErrorHandler("Something went wrong", 500));
@@ -543,19 +592,49 @@ export const getAdmin = asyncHandler(async (req: Request, res: Response, next: N
     if (requestedUserRole === "admin" && existingUserId === "admin")
         return next(new ErrorHandler("You cannot get another admin", 403));
 
-    const user = await Admin.findById(existingUserId);
+    const cachedData = await redis.get(`admin-user:${existingUserId}`);
 
-    if (!user) return next(new ErrorHandler("User not found", 404));
+    if (cachedData) {
+        const user = JSON.parse(cachedData) as IAdmin;
+        if (!user) return next(new ErrorHandler("User not found", 404));
 
-    // Send response
-    const userData = {
-        _id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        avatar: user.avatar,
-        status: user.status,
-    };
+        // Send response
+        const userData = {
+            _id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            avatar: user.avatar,
+            status: user.status,
+        };
+
+        res.status(200).json({
+            success: true,
+            message: "User",
+            user: userData,
+        });
+    } else {
+        const user = await Admin.findById(existingUserId);
+        if (!user) return next(new ErrorHandler("User not found", 404));
+
+        // Send response
+        const userData = {
+            _id: user._id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            avatar: user.avatar,
+            status: user.status,
+        };
+
+        res.status(200).json({
+            success: true,
+            message: "User",
+            user: userData,
+        });
+    }
 });

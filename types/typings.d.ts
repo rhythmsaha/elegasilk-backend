@@ -15,8 +15,8 @@ export interface IRequestAdminObject {
 declare global {
     namespace Express {
         interface Request {
-            admin: IRequestAdminObject;
-            jwtPayload: JwtPayload;
+            admin?: IRequestAdminObject;
+            jwtPayload?: JwtPayload;
         }
     }
 }

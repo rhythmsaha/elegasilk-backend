@@ -3,11 +3,12 @@ import express, { NextFunction, Request, Response, Application } from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import errorMiddleware from "./middlewares/errorMiddleware";
+import adminRouter from "./routes/admin.route";
 
 // Initialize App
 export const app = express();
 
-app.use(cookieParser());
+app.use(express.json());
 
 // Cors => Cross Origin Resource Sharing
 app.use(
@@ -17,12 +18,15 @@ app.use(
 );
 
 // Testing route
-app.get("/test", async (req: Request, res: Response, next: NextFunction) => {
+app.get("/api/test", async (req: Request, res: Response, next: NextFunction) => {
     res.status(200).json({
         success: true,
         message: "API is working",
     });
 });
+
+// Api routes
+app.use("/api/admin", adminRouter);
 
 // Catch Unknown Routes
 app.all("*", (req: Request, res: Response, next: NextFunction) => {

@@ -8,7 +8,7 @@
     "scripts": {
         "build": "npx tsc",
         "start": "node dist/server.js",
-        "dev": "nodemon server.ts"
+        "dev": "ts-node-dev --respawn --transpile-only server.ts"
     },
     "dependencies": {
         "cookie-parser": "^1.4.6",
