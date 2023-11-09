@@ -120,9 +120,6 @@ export const loginAdmin = asyncHandler(async (req: Request, res: Response, next:
         return next(new ErrorHandler("Something went wrong!", 500));
     }
 
-    // set cache
-    redis.set(`admin-user:${adminUser._id}`, JSON.stringify(adminUser), "EX", 60 * 60 * 24 * 30);
-
     // send JWT, and initial required parameteres of admin object as Response
     const userData = {
         _id: adminUser._id,
@@ -133,6 +130,9 @@ export const loginAdmin = asyncHandler(async (req: Request, res: Response, next:
         role: adminUser.role,
         avatar: adminUser.avatar,
     };
+
+    // set cache
+    redis.set(`admin-user:${userData._id}`, JSON.stringify(userData), "EX", 60 * 60 * 24 * 30);
 
     res.status(200).json({
         success: true,
