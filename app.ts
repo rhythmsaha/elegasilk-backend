@@ -1,7 +1,6 @@
 // import Modules
 import express, { NextFunction, Request, Response, Application } from "express";
 import cors from "cors";
-import cookieParser from "cookie-parser";
 import errorMiddleware from "./middlewares/errorMiddleware";
 import adminRouter from "./routes/admin.route";
 
