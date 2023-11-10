@@ -1,7 +1,6 @@
 import asyncHandler from "express-async-handler";
 import Admin, { IAdmin } from "../models/Admin.model";
 import ErrorHandler from "../utils/ErrorHandler";
-import jwt, { Secret, JwtPayload } from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import validator from "validator";
 import { validateStrongPassword } from "../utils/validate";
