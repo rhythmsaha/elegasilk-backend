@@ -19,6 +19,7 @@ const ModelSchema = new Schema<ISubCategory>({
         minlength: [2, "Name must be at least 2 characters long"],
         maxlength: [50, "Name must be at most 50 characters long"],
         validate: [validator.isAlpha, "Please provide a valid name"],
+        index: true,
         trim: true,
     },
 

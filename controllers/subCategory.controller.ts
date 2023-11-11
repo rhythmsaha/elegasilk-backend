@@ -1,9 +1,7 @@
 import asyncHandler from "express-async-handler";
-import Category, { ICategory } from "../models/category.model";
 import { Request, Response, NextFunction } from "express";
 import ErrorHandler from "../utils/ErrorHandler";
 import validator from "validator";
-import { redis } from "../lib/redis";
 import SubCategory from "../models/subCategory.model";
 
 // Create a new sub category
@@ -11,9 +9,7 @@ export const createSubCategory = asyncHandler(async (req: Request, res: Response
     const { name, description, image, status, category } = req.body;
 
     // Name validation handled by mongoose
-
     // Description validation handled by mongoose
-
     // Image validation handled by mongoose
 
     // Status validation
@@ -118,7 +114,25 @@ export const deleteSubCategory = asyncHandler(async (req: Request, res: Response
 });
 
 // Get all sub categories
-export const getAllSubCategories = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
+export const getAllSubCategories = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // Check if there is a query
+    if (Object.keys(req.query).length !== 0) {
+        return next(new ErrorHandler("Please use the correct route to get all sub categories", 400));
+    }
+
+    // Get all sub categories
+    const subCategories = await SubCategory.find();
+
+    if (!subCategories) {
+        return next(new ErrorHandler("Failed to get all sub categories", 500));
+    }
+
+    // Send response
+    res.status(200).json({
+        success: true,
+        data: subCategories,
+    });
+});
 
 // Get a single sub category
 export const getSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});

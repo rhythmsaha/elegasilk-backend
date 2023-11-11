@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from "express";
 import ErrorHandler from "../utils/ErrorHandler";
 import validator from "validator";
 import { redis } from "../lib/redis";
+import { FilterQuery, Model, SortOrder } from "mongoose";
 
 // Create a new category
 export const createCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -122,8 +123,42 @@ export const deleteCategory = asyncHandler(async (req: Request, res: Response, n
 
 // Get all categories
 export const getAllCategories = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // check if search query exists
+    const search = req.query.search as string;
+
+    // check if pagination query exists
+    const page = req.query.page as string;
+    const limit = req.query.limit as string;
+
+    // check if sort query exists
+    const sort = req.query.sort as ("name" | "createdAt" | "updatedAt" | "status") | undefined;
+
+    // if search query exists
+    let filters = {} as FilterQuery<ICategory>;
+    let sortBy: string | { [key: string]: SortOrder | { $meta: any } } | [string, SortOrder][] | null | undefined;
+
+    if (search) {
+        filters["$text"] = { $search: search };
+    }
+
+    if (page && limit) {
+        filters["$and"] = [{ status: true }];
+        sortBy = { createdAt: -1 };
+    }
+
+    if (sort) {
+        if (sort === "name" || sort === "status") {
+            sortBy = { [sort]: "ascending" };
+        } else {
+            sortBy = { [sort]: "descending" };
+        }
+    }
+
     // Get all categories
-    const categories = await Category.find({});
+    const categories = await Category.find(filters)
+        .sort(sortBy)
+        .skip(Number(page) * Number(limit))
+        .limit(Number(limit));
 
     if (!categories) {
         return next(new ErrorHandler("Failed to get all categories", 500));

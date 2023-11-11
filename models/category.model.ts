@@ -20,6 +20,7 @@ const ModelSchema = new Schema<ICategory>({
         maxlength: [50, "Name must be at most 50 characters long"],
         validate: [validator.isAlpha, "Please provide a valid name"],
         trim: true,
+        index: true,
     },
 
     slug: {
