@@ -1,3 +1,8 @@
+/**
+ * Express router for handling admin related routes.
+ * @module adminRouter
+ */
+
 import express from "express";
 import { authorizeAccessToken, authorizeAdminRole } from "../middlewares/auth";
 import {
@@ -23,7 +28,15 @@ const adminRouter = express.Router();
 
 const adminSecret = process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret;
 
-// Register new admin -> /api/admin/create-new
+/**
+ * Route for registering a new admin.
+ * @name post/api/admin/create-new
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} middleware - Middleware function
+ * @param {function} controller - Controller function
+ */
 adminRouter.post(
     "/create-new",
     authorizeAccessToken(adminSecret),
@@ -31,34 +44,110 @@ adminRouter.post(
     registerNewAdmin
 );
 
-// Login admin -> /api/admin/login -> post
+/**
+ * Route for logging in an admin.
+ * @name post/api/admin/login
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} controller - Controller function
+ */
 adminRouter.post("/login", loginAdmin);
 
-// logout admin -> /api/admin/logout -> post
+/**
+ * Route for logging out an admin.
+ * @name post/api/admin/logout
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} middleware - Middleware function
+ * @param {function} controller - Controller function
+ */
 adminRouter.post("/logout", authorizeAccessToken(adminSecret), logoutAdmin);
 
-// get current admin session -> /api/admin/session -> get
+/**
+ * Route for getting the current admin session.
+ * @name get/api/admin/session
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} middleware - Middleware function
+ * @param {function} controller - Controller function
+ */
 adminRouter.get("/session", authorizeAccessToken(adminSecret), getAdminSession);
 
-// Update logged in admin User profile -> /api/admin/user -> put
+/**
+ * Route for updating the logged in admin user profile.
+ * @name put/api/admin/user
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} middleware - Middleware function
+ * @param {function} controller - Controller function
+ */
 adminRouter.put("/user", authorizeAccessToken(adminSecret), updateSelfProfile);
 
-// delete logged in admin User profile -> /api/admin/user -> delete
+/**
+ * Route for deleting the logged in admin user profile.
+ * @name delete/api/admin/user
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} middleware - Middleware function
+ * @param {function} controller - Controller function
+ */
 adminRouter.delete("/user", authorizeAccessToken(adminSecret), deleteSelfProfile);
 
-// update logged in admin User password -> /api/admin/password -> put
+/**
+ * Route for updating the logged in admin user password.
+ * @name put/api/admin/password
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} middleware - Middleware function
+ * @param {function} controller - Controller function
+ */
 adminRouter.put("/password", authorizeAccessToken(adminSecret), updateSelfPassword);
 
-// forgot password -> /api/admin/forgot-password/:query -> get
+/**
+ * Route for requesting a password reset.
+ * @name get/api/admin/forgot-password
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} controller - Controller function
+ */
 adminRouter.get("/forget-password", forgotPassword);
 
-// verifyResetPasswordCode -> /api/admin/reset-password -> post
+/**
+ * Route for verifying a password reset code.
+ * @name post/api/admin/reset-password
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} controller - Controller function
+ */
 adminRouter.post("/reset-password", verifyResetPasswordCode);
 
-// reset password -> /api/admin/reset-password -> put
+/**
+ * Route for resetting a password.
+ * @name put/api/admin/reset-password
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} controller - Controller function
+ */
 adminRouter.put("/reset-password", resetPassword);
 
-// Update admin user -> /api/admin/user/:id
+/**
+ * Route for updating an admin user.
+ * @name put/api/admin/user/:id
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} middleware - Middleware function
+ * @param {function} controller - Controller function
+ */
 adminRouter.put(
     "/user/:id",
     authorizeAccessToken(adminSecret),
@@ -66,7 +155,15 @@ adminRouter.put(
     updateAdminUser
 );
 
-// delete admin user -> /api/admin/user/:id -> delete
+/**
+ * Route for deleting an admin user.
+ * @name delete/api/admin/user/:id
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} middleware - Middleware function
+ * @param {function} controller - Controller function
+ */
 adminRouter.delete(
     "/user/:id",
     authorizeAccessToken(adminSecret),
@@ -74,10 +171,26 @@ adminRouter.delete(
     deleteAdmin
 );
 
-// get all admin users -> /api/admin/users  -> get
+/**
+ * Route for getting all admin users.
+ * @name get/api/admin/users
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} middleware - Middleware function
+ * @param {function} controller - Controller function
+ */
 adminRouter.get("/users", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), getAllAdmins);
 
-// get single admin user -> /api/admin/user/:id -> get
+/**
+ * Route for getting a single admin user.
+ * @name get/api/admin/user/:id
+ * @function
+ * @memberof module:adminRouter
+ * @param {string} path - Express path
+ * @param {function} middleware - Middleware function
+ * @param {function} controller - Controller function
+ */
 adminRouter.get("/user/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), getAdmin);
 
 export default adminRouter;
