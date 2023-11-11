@@ -2,7 +2,8 @@ import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
 import ErrorHandler from "../utils/ErrorHandler";
 import validator from "validator";
-import SubCategory from "../models/subCategory.model";
+import SubCategory, { ISubCategory } from "../models/subCategory.model";
+import { FilterQuery, SortOrder } from "mongoose";
 
 // Create a new sub category
 export const createSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -115,13 +116,52 @@ export const deleteSubCategory = asyncHandler(async (req: Request, res: Response
 
 // Get all sub categories
 export const getAllSubCategories = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // Check if there is a query
-    if (Object.keys(req.query).length !== 0) {
-        return next(new ErrorHandler("Please use the correct route to get all sub categories", 400));
+    // check if search query exists
+    const search = req.query.search as string;
+
+    // check if pagination query exists
+    const page = req.query.page as string;
+    const limit = req.query.limit as string;
+
+    // check if sort query exists
+    const sort = req.query.sort as ("name" | "createdAt" | "updatedAt" | "status") | undefined;
+
+    // check if category query exists
+    const category = req.query.category as string;
+
+    // if search query exists
+    let filters = {} as FilterQuery<ISubCategory>;
+    let sortBy: string | { [key: string]: SortOrder | { $meta: any } } | [string, SortOrder][] | null | undefined;
+    let populate: any = {};
+
+    if (search) {
+        filters["$text"] = { $search: search };
+    }
+
+    if (page && limit) {
+        filters["$and"] = [{ status: true }];
+        sortBy = { createdAt: -1 };
+    }
+
+    if (sort) {
+        if (sort === "name" || sort === "status") {
+            sortBy = { [sort]: "ascending" };
+        } else {
+            sortBy = { [sort]: "descending" };
+        }
+    }
+
+    if (category) {
+        filters["$and"] = [{ category: category }];
+        populate = { path: "category", select: "name slug" };
     }
 
     // Get all sub categories
-    const subCategories = await SubCategory.find();
+    const subCategories = await SubCategory.find(filters)
+        .sort(sortBy)
+        .populate([...populate])
+        .skip(Number(page) * Number(limit))
+        .limit(Number(limit));
 
     if (!subCategories) {
         return next(new ErrorHandler("Failed to get all sub categories", 500));
@@ -135,9 +175,19 @@ export const getAllSubCategories = asyncHandler(async (req: Request, res: Respon
 });
 
 // Get a single sub category
-export const getSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
+export const getSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
 
-// Get all sub categories of a category
-export const getAllSubCategoriesOfCategory = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {}
-);
+    // Get sub category
+    const subCategory = await SubCategory.findById(id).populate("category", "name slug");
+
+    if (!subCategory) {
+        return next(new ErrorHandler("Failed to get sub category", 500));
+    }
+
+    // Send response
+    res.status(200).json({
+        success: true,
+        data: subCategory,
+    });
+});

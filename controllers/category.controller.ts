@@ -123,6 +123,11 @@ export const deleteCategory = asyncHandler(async (req: Request, res: Response, n
 
 // Get all categories
 export const getAllCategories = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // Check if there is a query
+    if (Object.keys(req.query).length !== 0) {
+        return next(new ErrorHandler("Please use the correct route to get all sub categories", 400));
+    }
+
     // check if search query exists
     const search = req.query.search as string;
 
