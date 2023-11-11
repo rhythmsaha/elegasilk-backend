@@ -3,10 +3,18 @@ import Category, { ICategory } from "../models/category.model";
 import { Request, Response, NextFunction } from "express";
 import ErrorHandler from "../utils/ErrorHandler";
 import validator from "validator";
-import { redis } from "../lib/redis";
-import { FilterQuery, Model, SortOrder } from "mongoose";
+import { FilterQuery, SortOrder } from "mongoose";
 
-// Create a new category
+/**
+ * Creates a new category.
+ * @function
+ * @async
+ * @param {Request} req - Express request object.
+ * @param {Response} res - Express response object.
+ * @param {NextFunction} next - Express next function.
+ * @returns {Promise<void>} - Promise that resolves with no value.
+ * @throws {ErrorHandler} - If there is an error creating the category.
+ */
 export const createCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { name, description, image, status } = req.body;
 
@@ -47,7 +55,13 @@ export const createCategory = asyncHandler(async (req: Request, res: Response, n
     });
 });
 
-// Update a category
+/**
+ * Updates a category by ID.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response indicating success or failure and the updated category data.
+ */
 export const updateCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     const { name, description, image, status } = req.body;
@@ -96,7 +110,13 @@ export const updateCategory = asyncHandler(async (req: Request, res: Response, n
     });
 });
 
-// Delete a category
+/**
+ * Deletes a category by ID.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response indicating success or failure.
+ */
 export const deleteCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
 
@@ -121,7 +141,16 @@ export const deleteCategory = asyncHandler(async (req: Request, res: Response, n
     });
 });
 
-// Get all categories
+/**
+ * Get all categories with optional search, pagination, and sorting.
+ * @function
+ * @async
+ * @param {Request} req - Express request object.
+ * @param {Response} res - Express response object.
+ * @param {NextFunction} next - Express next function.
+ * @returns {Promise<void>} - Promise that resolves with the response object.
+ * @throws {ErrorHandler} - Throws an error if there is a query error or if the categories cannot be retrieved.
+ */
 export const getAllCategories = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // Check if there is a query
     if (Object.keys(req.query).length !== 0) {
@@ -176,7 +205,14 @@ export const getAllCategories = asyncHandler(async (req: Request, res: Response,
     });
 });
 
-// Get a category - with slug
+/**
+ * Retrieves a category by its slug.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON object containing the category data.
+ * @throws {ErrorHandler} If the category is not found.
+ */
 export const getCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { slug } = req.params;
 

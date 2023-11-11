@@ -5,7 +5,13 @@ import ErrorHandler from "../utils/ErrorHandler";
 import Collection, { ICollection } from "../models/collection.model";
 import { FilterQuery, SortOrder } from "mongoose";
 
-//  Create a new collection
+/**
+ * Create a new collection
+ * @param req - Express Request object
+ * @param res - Express Response object
+ * @param next - Express NextFunction object
+ * @returns Promise<void>
+ */
 export const createCollection = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { name, description, image, status, subCategory } = req.body;
 
@@ -47,7 +53,13 @@ export const createCollection = asyncHandler(async (req: Request, res: Response,
     });
 });
 
-// Update a collection
+/**
+ * Updates a collection by ID.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response indicating success and the updated collection data.
+ */
 export const updateCollection = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     const { name, description, image, status, subCategory } = req.body;
@@ -99,7 +111,14 @@ export const updateCollection = asyncHandler(async (req: Request, res: Response,
     });
 });
 
-// Delete a collection
+/**
+ * Deletes a collection by ID.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response indicating success and the deleted collection data.
+ * @throws {ErrorHandler} If the collection fails to delete.
+ */
 export const deleteCollection = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
 
@@ -117,7 +136,13 @@ export const deleteCollection = asyncHandler(async (req: Request, res: Response,
     });
 });
 
-// Get all collections
+/**
+ * Retrieves all collections based on the provided search, pagination, sort, and subcategory queries.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response containing the collections data.
+ */
 export const getAllCollections = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // check if search query exists
     const search = req.query.search as string;
@@ -194,7 +219,14 @@ export const getAllCollections = asyncHandler(async (req: Request, res: Response
     });
 });
 
-// Get a single collection
+/**
+ * Retrieves a collection by its ID and populates its subCategory field with name and slug.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response with the collection data.
+ * @throws {ErrorHandler} If the collection cannot be found.
+ */
 export const getCollection = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
 

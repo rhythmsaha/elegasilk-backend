@@ -5,7 +5,16 @@ import validator from "validator";
 import SubCategory, { ISubCategory } from "../models/subCategory.model";
 import { FilterQuery, SortOrder } from "mongoose";
 
-// Create a new sub category
+/**
+ * Creates a new subcategory.
+ * @function
+ * @async
+ * @param {Request} req - Express request object.
+ * @param {Response} res - Express response object.
+ * @param {NextFunction} next - Express next function.
+ * @returns {Promise<void>} - Promise that resolves with no value.
+ * @throws {ErrorHandler} - Throws an error if there is a validation error or if the subcategory creation fails.
+ */
 export const createSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { name, description, image, status, category } = req.body;
 
@@ -47,7 +56,13 @@ export const createSubCategory = asyncHandler(async (req: Request, res: Response
     });
 });
 
-// Update a sub category
+/**
+ * Update a subcategory by ID
+ * @param req - Express Request object
+ * @param res - Express Response object
+ * @param next - Express NextFunction object
+ * @returns Promise<void>
+ */
 export const updateSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
     const { name, description, image, status, category } = req.body;
@@ -96,7 +111,13 @@ export const updateSubCategory = asyncHandler(async (req: Request, res: Response
     });
 });
 
-// Delete a sub category
+/**
+ * Deletes a sub category by ID.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response indicating success and the deleted sub category data.
+ */
 export const deleteSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
 
@@ -114,7 +135,15 @@ export const deleteSubCategory = asyncHandler(async (req: Request, res: Response
     });
 });
 
-// Get all sub categories
+/**
+ * Get all sub categories
+ * @route GET /api/v1/sub-categories
+ * @param req - The request object
+ * @param res - The response object
+ * @param next - The next middleware function
+ * @returns Returns a JSON response containing an array of sub categories
+ * @throws {ErrorHandler} Will throw an error if failed to get all sub categories
+ */
 export const getAllSubCategories = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // check if search query exists
     const search = req.query.search as string;
@@ -174,7 +203,14 @@ export const getAllSubCategories = asyncHandler(async (req: Request, res: Respon
     });
 });
 
-// Get a single sub category
+/**
+ * Retrieves a subcategory by ID and populates its category field with name and slug.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response with the subcategory data.
+ * @throws {ErrorHandler} If the subcategory cannot be found.
+ */
 export const getSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
 
