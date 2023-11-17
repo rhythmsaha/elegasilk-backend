@@ -48,7 +48,7 @@ collectionRouter.post(
  * @param {function} handler - Express handler
  */
 collectionRouter.put(
-    "/",
+    "/:id",
     authorizeAccessToken(adminSecret),
     authorizeAdminRole("superadmin", "admin"),
     updateCollection
@@ -66,7 +66,7 @@ collectionRouter.put(
  * @param {function} handler - Express handler
  */
 collectionRouter.delete(
-    "/",
+    "/:id",
     authorizeAccessToken(adminSecret),
     authorizeAdminRole("superadmin", "admin"),
     deleteCollection
