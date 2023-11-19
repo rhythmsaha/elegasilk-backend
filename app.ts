@@ -4,7 +4,7 @@
  */
 
 // import Modules
-import express, { NextFunction, Request, Response, Application } from "express";
+import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import errorMiddleware from "./middlewares/errorMiddleware";
 import adminRouter from "./routes/admin.routes";
@@ -19,11 +19,7 @@ export const app = express();
 app.use(express.json());
 
 // Cors => Cross Origin Resource Sharing
-app.use(
-    cors({
-        origin: process.env.ORIGIN,
-    })
-);
+app.use(cors());
 
 /**
  * Testing route to check if the API is working.

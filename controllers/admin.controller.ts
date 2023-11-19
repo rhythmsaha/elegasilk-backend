@@ -149,6 +149,7 @@ export const loginAdmin = asyncHandler(async (req: Request, res: Response, next:
         email: adminUser.email,
         role: adminUser.role,
         avatar: adminUser.avatar,
+        status: adminUser.status,
     };
 
     // set cache
