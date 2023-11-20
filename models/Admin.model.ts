@@ -18,65 +18,70 @@ export interface IAdmin extends Document {
     signAccessToken: () => string;
 }
 
-const AdminSchema = new Schema<IAdmin>({
-    firstName: {
-        type: String,
-        required: [true, "Please provide your first name"],
-        validate: [validator.isAlpha, "Please provide a valid first name"],
-        minlength: [2, "First name must be at least 2 characters long"],
-        maxlength: [50, "First name must be at most 50 characters long"],
-        trim: true,
-    },
-    lastName: {
-        type: String,
-        required: [true, "Please provide your last name"],
-        validate: [validator.isAlpha, "Please provide a valid last name"],
-        minlength: [2, "Last name must be at least 2 characters long"],
-        maxlength: [50, "Last name must be at most 50 characters long"],
-        trim: true,
-    },
+const AdminSchema = new Schema<IAdmin>(
+    {
+        firstName: {
+            type: String,
+            required: [true, "Please provide your first name"],
+            validate: [validator.isAlpha, "Please provide a valid first name"],
+            minlength: [2, "First name must be at least 2 characters long"],
+            maxlength: [50, "First name must be at most 50 characters long"],
+            trim: true,
+        },
+        lastName: {
+            type: String,
+            required: [true, "Please provide your last name"],
+            validate: [validator.isAlpha, "Please provide a valid last name"],
+            minlength: [2, "Last name must be at least 2 characters long"],
+            maxlength: [50, "Last name must be at most 50 characters long"],
+            trim: true,
+        },
 
-    username: {
-        type: String,
-        required: [true, "Please provide a username"],
-        minlength: [4, "Username must be at least 4 characters long"],
-        maxlength: [50, "Username must be at most 50 characters long"],
-        trim: true,
-        unique: true,
-        index: true,
-    },
+        username: {
+            type: String,
+            required: [true, "Please provide a username"],
+            minlength: [4, "Username must be at least 4 characters long"],
+            maxlength: [50, "Username must be at most 50 characters long"],
+            trim: true,
+            unique: true,
+            index: true,
+        },
 
-    email: {
-        type: String,
-        validate: [validator.isEmail, "Please provide a valid email address"],
-        trim: true,
-        index: true,
-    },
+        email: {
+            type: String,
+            validate: [validator.isEmail, "Please provide a valid email address"],
+            trim: true,
+            index: true,
+        },
 
-    hashed_password: {
-        type: String,
-        required: [true, "Please provide a password"],
-        minlength: [8, "Password must be at least 8 characters long"],
-        maxlength: [50, "Password must be at most 50 characters long"],
-        select: false,
-    },
+        hashed_password: {
+            type: String,
+            required: [true, "Please provide a password"],
+            minlength: [8, "Password must be at least 8 characters long"],
+            maxlength: [50, "Password must be at most 50 characters long"],
+            select: false,
+        },
 
-    role: {
-        type: String,
-        enum: ["moderator", "admin", "superadmin", "guest"],
-        default: "moderator",
-    },
+        role: {
+            type: String,
+            enum: ["moderator", "admin", "superadmin", "guest"],
+            default: "moderator",
+        },
 
-    status: {
-        type: Boolean,
-        default: true,
-    },
+        status: {
+            type: Boolean,
+            default: true,
+        },
 
-    avatar: {
-        type: String,
-        validate: [validator.isURL, "Please provide a valid URL"],
+        avatar: {
+            type: String,
+            validate: [validator.isURL, "Please provide a valid URL"],
+        },
     },
-});
+    {
+        timestamps: true,
+    }
+);
 
 // Encrypting password before saving user
 AdminSchema.pre<IAdmin & { salt?: string }>("save", async function (next) {
