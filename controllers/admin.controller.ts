@@ -271,11 +271,7 @@ export const updateSelfProfile = asyncHandler(async (req: Request, res: Response
     const { firstName, lastName, username, email, avatar }: IAdmin = req.body;
 
     // Update admin profile in database
-    const updateAdmin = await Admin.findByIdAndUpdate(
-        adminId,
-        { firstName, lastName, username, email, avatar },
-        { new: true }
-    );
+    const updateAdmin = await Admin.findByIdAndUpdate(adminId, { firstName, lastName, username, email, avatar }, { new: true });
 
     // Send response
     const userData = {
@@ -605,12 +601,10 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response, next
     if (requestedUserRole === "moderator") return next(new ErrorHandler("unauthorized!", 403));
 
     // admins can not delete super admin
-    if (requestedUserRole === "admin" && existingUserRole === "superadmin")
-        return next(new ErrorHandler("You cannot delete a superadmin", 403));
+    if (requestedUserRole === "admin" && existingUserRole === "superadmin") return next(new ErrorHandler("You cannot delete a superadmin", 403));
 
     // admins can not delete another admin
-    if (requestedUserRole === "admin" && existingUserRole === "admin")
-        return next(new ErrorHandler("You cannot delete another admin", 403));
+    if (requestedUserRole === "admin" && existingUserRole === "admin") return next(new ErrorHandler("You cannot delete another admin", 403));
 
     // Delete admin
     await redis.del(`admin-user:${existingUser._id}`);
@@ -651,11 +645,27 @@ export const getAllAdmins = asyncHandler(async (req: Request, res: Response, nex
         usersArr = users.filter((user) => user.role !== "superadmin");
     }
 
+    const formattedUsers = usersArr.map((user) => {
+        return {
+            _id: user._id,
+            fullName: `${user.firstName} ${user.lastName}`,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            username: user.username,
+            email: user.email,
+            role: user.role,
+            avatar: user.avatar,
+            status: user.status,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+        };
+    });
+
     // send response
     res.status(200).json({
         success: true,
         message: "All users",
-        users: usersArr,
+        users: formattedUsers,
     });
 });
 
@@ -681,11 +691,9 @@ export const getAdmin = asyncHandler(async (req: Request, res: Response, next: N
     if (requestedUserRole === "moderator") return next(new ErrorHandler("unauthorized!", 403));
 
     // Only super admin can get another superAdmin and admin
-    if (requestedUserRole === "admin" && existingUserId === "superadmin")
-        return next(new ErrorHandler("You cannot get a superadmin", 403));
+    if (requestedUserRole === "admin" && existingUserId === "superadmin") return next(new ErrorHandler("You cannot get a superadmin", 403));
 
-    if (requestedUserRole === "admin" && existingUserId === "admin")
-        return next(new ErrorHandler("You cannot get another admin", 403));
+    if (requestedUserRole === "admin" && existingUserId === "admin") return next(new ErrorHandler("You cannot get another admin", 403));
 
     const cachedData = await redis.get(`admin-user:${existingUserId}`);
 
