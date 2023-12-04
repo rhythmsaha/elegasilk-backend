@@ -41,10 +41,12 @@ export const authorizeAdminRole = (...roles: role[]) => {
     return expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
         const userId = req.admin?._id;
 
-        let cacheData: string = (await redis.get(`admin-user:${userId}`)) as string;
+        // let cacheData: string = (await redis.get(`admin-user:${userId}`)) as string;
+        let cacheData = null;
 
         if (!cacheData) {
             const admin = await Admin.findById(userId);
+
             if (!admin) return next(new ErrorHandler("Please login to access this resource", 401));
 
             if (!roles.includes(admin.role as role)) {

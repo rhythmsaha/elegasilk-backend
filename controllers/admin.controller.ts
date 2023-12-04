@@ -64,10 +64,10 @@ export const registerNewAdmin = asyncHandler(async (req: Request, res: Response,
 
         // Create new admin
         const admin = await Admin.create({
-            firstName,
-            lastName,
-            username,
-            email,
+            firstName: firstName.toLowerCase(),
+            lastName: lastName.toLowerCase(),
+            username: username.toLowerCase(),
+            email: email?.toLowerCase(),
             hashed_password: password,
             role,
             avatar,
@@ -153,7 +153,7 @@ export const loginAdmin = asyncHandler(async (req: Request, res: Response, next:
     };
 
     // set cache
-    redis.set(`admin-user:${userData._id}`, JSON.stringify(userData), "EX", 60 * 60 * 24 * 30);
+    // redis.set(`admin-user:${userData._id}`, JSON.stringify(userData), "EX", 60 * 60 * 24 * 30);
 
     res.status(200).json({
         success: true,
@@ -168,7 +168,7 @@ export const logoutAdmin = asyncHandler(async (req: Request, res: Response, next
     // remove jwt from redis cache
     const userId = req.admin?._id;
 
-    redis.del(`admin-user:${userId}`);
+    // redis.del(`admin-user:${userId}`);
 
     // send response
     res.status(200).json({
@@ -194,7 +194,8 @@ export const getAdminSession = asyncHandler(async (req: Request, res: Response, 
     const adminId = req.admin?._id;
 
     // Check if admin exists in redis cache
-    let cacheData = await redis.get(`admin-user:${adminId}`);
+    // let cacheData = await redis.get(`admin-user:${adminId}`);
+    let cacheData = null;
 
     let userData: any;
 
@@ -222,7 +223,7 @@ export const getAdminSession = asyncHandler(async (req: Request, res: Response, 
             avatar: admin.avatar,
         };
 
-        redis.set(`admin-user:${admin._id}`, JSON.stringify(admin), "EX", 60 * 60 * 24 * 30);
+        // redis.set(`admin-user:${admin._id}`, JSON.stringify(admin), "EX", 60 * 60 * 24 * 30);
     } else {
         const admin = JSON.parse(cacheData) as IAdmin;
 
@@ -240,7 +241,7 @@ export const getAdminSession = asyncHandler(async (req: Request, res: Response, 
             avatar: admin.avatar,
         };
 
-        redis.set(`admin-user:${admin._id}`, JSON.stringify(admin), "EX", 60 * 60 * 24 * 30);
+        // redis.set(`admin-user:${admin._id}`, JSON.stringify(admin), "EX", 60 * 60 * 24 * 30);
     }
 
     let accessToken = new Admin({ _id: userData._id, role: userData.role }).signAccessToken();
@@ -286,7 +287,7 @@ export const updateSelfProfile = asyncHandler(async (req: Request, res: Response
 
     if (!updateAdmin) return next(new ErrorHandler("Something went wrong", 500));
 
-    redis.set(`admin-user:${updateAdmin._id}`, JSON.stringify(updateAdmin), "EX", 60 * 60 * 24 * 30);
+    // redis.set(`admin-user:${updateAdmin._id}`, JSON.stringify(updateAdmin), "EX", 60 * 60 * 24 * 30);
 
     res.status(200).json({
         success: true,
@@ -311,7 +312,7 @@ export const deleteSelfProfile = asyncHandler(async (req: Request, res: Response
     const adminId = req.admin?._id;
 
     // Delete admin profile in database
-    await redis.del(`admin-user:${adminId}`);
+    // await redis.del(`admin-user:${adminId}`);
     await Admin.findByIdAndDelete(adminId);
 
     // Send response
@@ -354,7 +355,7 @@ export const updateSelfPassword = asyncHandler(async (req: Request, res: Respons
 
     if (!saveAdmin) return next(new ErrorHandler("Something went wrong", 500));
 
-    redis.set(`admin-user:${saveAdmin._id}`, JSON.stringify(saveAdmin), "EX", 60 * 60 * 24 * 30);
+    // redis.set(`admin-user:${saveAdmin._id}`, JSON.stringify(saveAdmin), "EX", 60 * 60 * 24 * 30);
 
     // generate new token
     const accessToken = admin.signAccessToken();
@@ -494,7 +495,13 @@ export const updateAdminUser = asyncHandler(async (req: Request, res: Response, 
     }
 
     // Get fields to update from body {firstName, lastName, username, email, role, avatar, status}
-    const { firstName, lastName, username, email, role, avatar, status }: IAdmin = req.body;
+    let { firstName, lastName, username, email, role, avatar, status }: IAdmin = req.body;
+
+    // convert to lowercase
+    firstName = firstName?.toLowerCase();
+    lastName = lastName?.toLowerCase();
+    username = username?.toLowerCase();
+    email = email?.toLowerCase();
 
     // Check if admin exists
     const existingUser = await Admin.findById(existingUserId);
@@ -512,8 +519,11 @@ export const updateAdminUser = asyncHandler(async (req: Request, res: Response, 
         existingUser.username = username;
         existingUser.email = email;
         existingUser.role = role;
-        existingUser.avatar = avatar;
         existingUser.status = status;
+
+        if (avatar) {
+            existingUser.avatar = avatar;
+        }
     }
     // Check if requested user is admin
     else if (requestedUserRole === "admin") {
@@ -528,7 +538,7 @@ export const updateAdminUser = asyncHandler(async (req: Request, res: Response, 
         // check if existing user is moderator
         else if (existingUserRole === "moderator") {
             //   admins can not update role of existing moderator
-            if (role) {
+            if (role !== "moderator") {
                 return next(new ErrorHandler("You cannot update role of existing moderator", 403));
             }
 
@@ -536,8 +546,11 @@ export const updateAdminUser = asyncHandler(async (req: Request, res: Response, 
             existingUser.lastName = lastName;
             existingUser.username = username;
             existingUser.email = email;
-            existingUser.avatar = avatar;
             existingUser.status = status;
+
+            if (avatar) {
+                existingUser.avatar = avatar;
+            }
         } else {
             return next(new ErrorHandler("You are not permitted for updates", 400));
         }
@@ -562,7 +575,7 @@ export const updateAdminUser = asyncHandler(async (req: Request, res: Response, 
         status: updatedUser.status,
     };
 
-    redis.set(`admin-user:${updatedUser._id}`, JSON.stringify(updatedUser), "EX", 60 * 60 * 24 * 30);
+    // redis.set(`admin-user:${updatedUser._id}`, JSON.stringify(updatedUser), "EX", 60 * 60 * 24 * 30);
 
     res.status(200).json({
         success: true,
@@ -607,7 +620,7 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response, next
     if (requestedUserRole === "admin" && existingUserRole === "admin") return next(new ErrorHandler("You cannot delete another admin", 403));
 
     // Delete admin
-    await redis.del(`admin-user:${existingUser._id}`);
+    // await redis.del(`admin-user:${existingUser._id}`);
     const deleted = await existingUser.deleteOne();
 
     if (!deleted) return next(new ErrorHandler("Something went wrong", 500));
@@ -642,7 +655,9 @@ export const getAllAdmins = asyncHandler(async (req: Request, res: Response, nex
 
     // admins are not allowed to get super admins but get all other admins and moderators
     if (requestedUserRole === "admin") {
-        usersArr = users.filter((user) => user.role !== "superadmin");
+        const requestedUser = users.find((user) => user._id.toString() === req.admin?._id.toString());
+        usersArr = users.filter((user) => user.role !== "superadmin" && user.role !== "admin");
+        usersArr.push(requestedUser as IAdmin);
     }
 
     const formattedUsers = usersArr.map((user) => {
@@ -687,13 +702,7 @@ export const getAdmin = asyncHandler(async (req: Request, res: Response, next: N
     // Get user id from params
     const existingUserId = req.params.id;
 
-    // Moderators are not allowed to get any other user
     if (requestedUserRole === "moderator") return next(new ErrorHandler("unauthorized!", 403));
-
-    // Only super admin can get another superAdmin and admin
-    if (requestedUserRole === "admin" && existingUserId === "superadmin") return next(new ErrorHandler("You cannot get a superadmin", 403));
-
-    if (requestedUserRole === "admin" && existingUserId === "admin") return next(new ErrorHandler("You cannot get another admin", 403));
 
     const cachedData = await redis.get(`admin-user:${existingUserId}`);
 
@@ -720,7 +729,17 @@ export const getAdmin = asyncHandler(async (req: Request, res: Response, next: N
         });
     } else {
         const user = await Admin.findById(existingUserId);
+
         if (!user) return next(new ErrorHandler("User not found", 404));
+
+        let existingUserRole = user?.role;
+
+        // Moderators are not allowed to get any other user
+
+        // Only super admin can get another superAdmin and admin
+        if (requestedUserRole === "admin" && existingUserRole === "superadmin") return next(new ErrorHandler("You cannot get a superadmin", 403));
+
+        if (requestedUserRole === "admin" && existingUserRole === "admin") return next(new ErrorHandler("You cannot get another admin", 403));
 
         // Send response
         const userData = {
