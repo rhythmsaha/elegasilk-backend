@@ -5,13 +5,7 @@
 
 import express from "express";
 import { authorizeAccessToken, authorizeAdminRole } from "../middlewares/auth";
-import {
-    createCategory,
-    deleteCategory,
-    getAllCategories,
-    getCategory,
-    updateCategory,
-} from "../controllers/category.controller";
+import { createCategory, deleteCategory, getAllCategories, getCategory, updateCategory } from "../controllers/category.controller";
 import { Secret } from "jsonwebtoken";
 
 const adminSecret = process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret;
@@ -27,12 +21,7 @@ const categoryRouter = express.Router();
  * @param {function} middleware - Express middleware
  * @param {function} controller - Express controller
  */
-categoryRouter.post(
-    "/create-new",
-    authorizeAccessToken(adminSecret),
-    authorizeAdminRole("superadmin", "admin"),
-    createCategory
-);
+categoryRouter.post("/create-new", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), createCategory);
 
 /**
  * Route for updating a category.
@@ -54,12 +43,7 @@ categoryRouter.put("/", authorizeAccessToken(adminSecret), authorizeAdminRole("s
  * @param {function} middleware - Express middleware
  * @param {function} controller - Express controller
  */
-categoryRouter.delete(
-    "/",
-    authorizeAccessToken(adminSecret),
-    authorizeAdminRole("superadmin", "admin"),
-    deleteCategory
-);
+categoryRouter.delete("/", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), deleteCategory);
 
 /**
  * Route for getting all categories.
@@ -81,6 +65,6 @@ categoryRouter.get("/", authorizeAccessToken(adminSecret), getAllCategories);
  * @param {function} middleware - Express middleware
  * @param {function} controller - Express controller
  */
-categoryRouter.get("/:id", authorizeAccessToken(adminSecret), getCategory);
+categoryRouter.get("/:slug", authorizeAccessToken(adminSecret), getCategory);
 
 export default categoryRouter;

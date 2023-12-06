@@ -37,7 +37,7 @@ app.get("/api/test", async (req: Request, res: Response, next: NextFunction) => 
 
 // Routes
 app.use("/api/admin", adminRouter);
-app.use("/api/category", categoryRouter);
+app.use("/api/categories", categoryRouter);
 app.use("/api/subcategory", subCategoryRouter);
 app.use("/api/collection", collectionRouter);
 app.use("/api/color", colorRouter);
