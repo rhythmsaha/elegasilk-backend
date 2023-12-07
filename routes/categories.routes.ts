@@ -25,14 +25,14 @@ categoryRouter.post("/create-new", authorizeAccessToken(adminSecret), authorizeA
 
 /**
  * Route for updating a category.
- * @name PUT /api/category/
+ * @name PUT /api/category/:id
  * @function
  * @memberof module:categoriesRoute
  * @param {string} path - Express path
  * @param {function} middleware - Express middleware
  * @param {function} controller - Express controller
  */
-categoryRouter.put("/", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), updateCategory);
+categoryRouter.put("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), updateCategory);
 
 /**
  * Route for deleting a category.
@@ -43,7 +43,7 @@ categoryRouter.put("/", authorizeAccessToken(adminSecret), authorizeAdminRole("s
  * @param {function} middleware - Express middleware
  * @param {function} controller - Express controller
  */
-categoryRouter.delete("/", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), deleteCategory);
+categoryRouter.delete("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), deleteCategory);
 
 /**
  * Route for getting all categories.

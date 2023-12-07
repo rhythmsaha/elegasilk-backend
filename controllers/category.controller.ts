@@ -95,7 +95,7 @@ export const updateCategory = asyncHandler(async (req: Request, res: Response, n
     category.name = name || category.name;
     category.description = description || category.description;
     category.image = image || category.image;
-    category.status = status || category.status;
+    category.status = typeof status === "boolean" ? status : category.status;
 
     const updatedCategory = await category.save();
 
