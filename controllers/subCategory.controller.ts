@@ -4,6 +4,7 @@ import ErrorHandler from "../utils/ErrorHandler";
 import validator from "validator";
 import SubCategory, { ISubCategory } from "../models/subCategory.model";
 import { FilterQuery, SortOrder } from "mongoose";
+import Category from "../models/category.model";
 
 /**
  * Creates a new subcategory.
@@ -17,6 +18,10 @@ import { FilterQuery, SortOrder } from "mongoose";
  */
 export const createSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { name, description, image, status, category } = req.body;
+
+    if (!category) {
+        return next(new ErrorHandler("Please provide a category id", 400));
+    }
 
     // Name validation handled by mongoose
     // Description validation handled by mongoose
@@ -48,6 +53,12 @@ export const createSubCategory = asyncHandler(async (req: Request, res: Response
     if (!newSubCategory) {
         return next(new ErrorHandler("Failed to create new sub category", 500));
     }
+
+    // add relation to category
+
+    await Category.findByIdAndUpdate(category, {
+        $push: { subcategories: newSubCategory._id },
+    });
 
     // Send response
     res.status(201).json({

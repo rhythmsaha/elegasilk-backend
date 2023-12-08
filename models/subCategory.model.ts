@@ -12,47 +12,49 @@ export interface ISubCategory extends Document {
     category?: string;
 }
 
-const ModelSchema = new Schema<ISubCategory>({
-    name: {
-        type: String,
-        required: [true, "Please provide a name"],
-        minlength: [2, "Name must be at least 2 characters long"],
-        maxlength: [50, "Name must be at most 50 characters long"],
-        validate: [validator.isAlpha, "Please provide a valid name"],
-        index: true,
-        trim: true,
-    },
+const ModelSchema = new Schema<ISubCategory>(
+    {
+        name: {
+            type: String,
+            required: [true, "Please provide a name"],
+            minlength: [2, "Name must be at least 2 characters long"],
+            maxlength: [50, "Name must be at most 50 characters long"],
 
-    slug: {
-        type: String,
-        slug: "name",
-        unique: true,
-        index: true,
-    },
+            index: true,
+            trim: true,
+        },
 
-    description: {
-        type: String,
-        trim: true,
-        minlength: [2, "Name must be at least 2 characters long"],
-        maxlength: [500, "Name must be at most 50 characters long"],
-    },
+        slug: {
+            type: String,
+            slug: "name",
+            index: true,
+        },
 
-    image: {
-        type: String,
-        trim: true,
-        validate: [validator.isURL, "Please provide a valid image URL"],
-    },
+        description: {
+            type: String,
+            trim: true,
+            minlength: [2, "Name must be at least 2 characters long"],
+            maxlength: [500, "Name must be at most 50 characters long"],
+        },
 
-    status: {
-        type: Boolean,
-        default: true,
-    },
+        image: {
+            type: String,
+            trim: true,
+            validate: [validator.isURL, "Please provide a valid image URL"],
+        },
 
-    category: {
-        type: Schema.Types.ObjectId,
-        ref: "Category",
+        status: {
+            type: Boolean,
+            default: true,
+        },
+
+        category: {
+            type: Schema.Types.ObjectId,
+            ref: "Category",
+        },
     },
-});
+    { timestamps: true }
+);
 
 const SubCategory = mongoose.model<ISubCategory>("SubCategory", ModelSchema);
 export default SubCategory;

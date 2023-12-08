@@ -216,12 +216,20 @@ export const getAllCategories = asyncHandler(async (req: Request, res: Response,
 export const getCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { slug } = req.params;
 
+    const shouldPopulate = req.query.subcategories === "true";
+
     // Get category
     const category = await Category.findOne({ slug });
 
     if (!category) {
         return next(new ErrorHandler("Category not found", 404));
     }
+    if (shouldPopulate) {
+        await category.populate("subcategories");
+    }
+
+    // Delay
+    // await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Send response
     res.status(200).json({

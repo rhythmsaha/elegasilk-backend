@@ -12,7 +12,7 @@ const errorMiddleware = (err: any, req: Request, res: Response, next: NextFuncti
     }
 
     // Duplicate Key Error
-    if (err.statusCode === 11000) {
+    if (err.code === 11000) {
         const message = `Duplicate ${Object.keys(err.keyValue)} entered`;
         err = new ErrorHandler(message, 400);
     }
