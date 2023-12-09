@@ -78,6 +78,13 @@ export const updateSubCategory = asyncHandler(async (req: Request, res: Response
     const { id } = req.params;
     const { name, description, image, status, category } = req.body;
 
+    const data = {
+        name,
+        description,
+        image,
+        status,
+    } as any;
+
     // Name validation handled by mongoose
 
     // Description validation handled by mongoose
@@ -96,20 +103,12 @@ export const updateSubCategory = asyncHandler(async (req: Request, res: Response
         if (!validator.isMongoId(category)) {
             return next(new ErrorHandler("Please provide a valid category id", 400));
         }
+
+        data.category = category;
     }
 
     // Update sub category
-    const updatedSubCategory = await SubCategory.findByIdAndUpdate(
-        id,
-        {
-            name,
-            description,
-            image,
-            status,
-            category,
-        },
-        { new: true }
-    );
+    const updatedSubCategory = await SubCategory.findByIdAndUpdate(id, { ...data }, { new: true });
 
     if (!updatedSubCategory) {
         return next(new ErrorHandler("Failed to update sub category", 500));
@@ -224,6 +223,8 @@ export const getAllSubCategories = asyncHandler(async (req: Request, res: Respon
  */
 export const getSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
+
+    console.log(id);
 
     // Get sub category
     const subCategory = await SubCategory.findById(id).populate("category", "name slug");

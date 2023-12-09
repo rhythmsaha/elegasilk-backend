@@ -11,16 +11,16 @@ const subCategoryRouter = express.Router();
 subCategoryRouter.post("/create-new", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin", "moderator"), createSubCategory);
 
 // Update a subcategory route (PUT): /api/subcategory/
-subCategoryRouter.put("/", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), updateSubCategory);
+subCategoryRouter.put("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), updateSubCategory);
 
 // Delete a subcategory route (DELETE): /api/subcategory/
-subCategoryRouter.delete("/", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), deleteSubCategory);
+subCategoryRouter.delete("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), deleteSubCategory);
 
 // Get all subcategories route (GET): /api/subcategory/
 subCategoryRouter.get("/", authorizeAccessToken, getAllSubCategories);
 
 // Get a subcategory route (GET): /api/subcategory/:id
-subCategoryRouter.get("/:id", authorizeAccessToken, getSubCategory);
+subCategoryRouter.get("/:id", authorizeAccessToken(adminSecret), getSubCategory);
 
 // Export the router
 export default subCategoryRouter;
