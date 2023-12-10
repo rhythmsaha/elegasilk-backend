@@ -152,13 +152,11 @@ export const deleteCategory = asyncHandler(async (req: Request, res: Response, n
  * @throws {ErrorHandler} - Throws an error if there is a query error or if the categories cannot be retrieved.
  */
 export const getAllCategories = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // Check if there is a query
-    if (Object.keys(req.query).length !== 0) {
-        return next(new ErrorHandler("Please use the correct route to get all sub categories", 400));
-    }
-
     // check if search query exists
     const search = req.query.search as string;
+
+    // check if populate query exists
+    const shouldPopulate = req.query.populate === "true";
 
     // check if pagination query exists
     const page = req.query.page as string;
@@ -189,10 +187,21 @@ export const getAllCategories = asyncHandler(async (req: Request, res: Response,
     }
 
     // Get all categories
-    const categories = await Category.find(filters)
-        .sort(sortBy)
-        .skip(Number(page) * Number(limit))
-        .limit(Number(limit));
+
+    let categories: ICategory[] | null;
+
+    if (shouldPopulate) {
+        categories = await Category.find(filters)
+            .sort(sortBy)
+            .skip(Number(page) * Number(limit))
+            .limit(Number(limit))
+            .populate("subcategories");
+    } else {
+        categories = await Category.find(filters)
+            .sort(sortBy)
+            .skip(Number(page) * Number(limit))
+            .limit(Number(limit));
+    }
 
     if (!categories) {
         return next(new ErrorHandler("Failed to get all categories", 500));

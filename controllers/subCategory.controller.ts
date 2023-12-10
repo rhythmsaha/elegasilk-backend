@@ -224,8 +224,6 @@ export const getAllSubCategories = asyncHandler(async (req: Request, res: Respon
 export const getSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { id } = req.params;
 
-    console.log(id);
-
     // Get sub category
     const subCategory = await SubCategory.findById(id).populate("category", "name slug");
 
