@@ -13,7 +13,7 @@ import { FilterQuery, SortOrder } from "mongoose";
  * @returns Promise<void>
  */
 export const createCollection = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const { name, description, image, status, subCategory } = req.body;
+    const { name, description, image, status, subcategory } = req.body;
 
     // Name validation handled by mongoose
     // Description validation handled by mongoose
@@ -26,11 +26,14 @@ export const createCollection = asyncHandler(async (req: Request, res: Response,
         }
     }
 
+    if (!subcategory) {
+        return next(new ErrorHandler("Please provide a sub category id", 400));
+    }
+
     // check if subCategory passed in body and if it is a valid mongo id
-    if (subCategory) {
-        if (!validator.isMongoId(subCategory)) {
-            return next(new ErrorHandler("Please provide a valid sub category id", 400));
-        }
+
+    if (!validator.isMongoId(subcategory)) {
+        return next(new ErrorHandler("Please provide a valid sub category id", 400));
     }
 
     // Create new collection
@@ -39,7 +42,7 @@ export const createCollection = asyncHandler(async (req: Request, res: Response,
         description,
         image,
         status,
-        subCategory,
+        subcategory,
     });
 
     if (!newCollection) {
@@ -157,10 +160,13 @@ export const getAllCollections = asyncHandler(async (req: Request, res: Response
     //  Check if sub category query exists
     const subCategory = req.query.subCategory as string;
 
+    // check if populate query exists
+    const populateSubCategory = req.query.populateSubCategory as string;
+
     // Define query objects
     let filters = {} as FilterQuery<ICollection>;
     let sortBy: string | { [key: string]: SortOrder | { $meta: any } } | [string, SortOrder][] | null | undefined;
-    let populate: any = {};
+    let populate: any;
 
     // if search query exists
     if (search) {
@@ -173,7 +179,7 @@ export const getAllCollections = asyncHandler(async (req: Request, res: Response
             return next(new ErrorHandler("Please provide a valid sub category id", 400));
         }
 
-        filters["subCategory"] = subCategory;
+        filters["subcategory"] = subCategory;
     }
 
     // if pagination query exists
@@ -193,19 +199,16 @@ export const getAllCollections = asyncHandler(async (req: Request, res: Response
     }
 
     // if populate query exists
-    if (page && limit) {
-        populate = {
-            path: "subCategory",
-            select: "name slug",
-        };
+    if (populateSubCategory === "true") {
+        populate = { path: "subcategory", select: "name" };
     }
 
     // Find all collections
     const collections = await Collection.find(filters, null, {
-        sort: sortBy,
+        // sort: sortBy,
         populate: populate,
-        skip: Number(page) * Number(limit),
-        limit: Number(limit),
+        // skip: Number(page) * Number(limit),
+        // limit: Number(limit),
     });
 
     if (!collections) {
@@ -216,6 +219,10 @@ export const getAllCollections = asyncHandler(async (req: Request, res: Response
     res.status(200).json({
         success: true,
         data: collections,
+        maxPage: 2,
+        currentPage: 1,
+        hasNext: true,
+        hasPrev: false,
     });
 });
 

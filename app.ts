@@ -39,7 +39,7 @@ app.get("/api/test", async (req: Request, res: Response, next: NextFunction) => 
 app.use("/api/admin", adminRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/subcategories", subCategoryRouter);
-app.use("/api/collection", collectionRouter);
+app.use("/api/collections", collectionRouter);
 app.use("/api/color", colorRouter);
 
 // Catch Unknown Routes
