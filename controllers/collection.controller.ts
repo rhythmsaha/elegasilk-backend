@@ -220,7 +220,7 @@ export const getAllCollections = asyncHandler(async (req: Request, res: Response
     pipeline.push({
         $facet: {
             collections: [{ $sort: sortCondition }, { $skip: startFrom }, { $limit: endAt }],
-            totalCount: [{ $group: { _id: null, total: { $sum: 1 } } }],
+            totalCount: [{ $count: "total" }],
         },
     });
 
@@ -233,7 +233,9 @@ export const getAllCollections = asyncHandler(async (req: Request, res: Response
     const total = collections[0].totalCount.length > 0 ? collections[0].totalCount[0].total : 0;
     const _collections = collections[0].collections;
     const maxPage = Math.ceil(total / Number(pageSize));
-    const currentPage = Number(page);
+    let currentPage = Number(page);
+
+    if (maxPage < currentPage) currentPage = 1;
 
     // Send response
     res.status(200).json({
