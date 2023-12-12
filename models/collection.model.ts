@@ -20,7 +20,7 @@ const ModelSchema = new Schema<ICollection>(
             minlength: [2, "Name must be at least 2 characters long"],
             maxlength: [50, "Name must be at most 50 characters long"],
             trim: true,
-            index: true,
+            index: "text",
         },
 
         slug: {

@@ -12,6 +12,8 @@ export interface IRequestAdminObject {
     avatar?: string;
 }
 
+type ISortOrder = "asc" | "desc";
+
 declare global {
     namespace Express {
         interface Request {

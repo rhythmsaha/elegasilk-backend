@@ -3,7 +3,8 @@ import { Request, Response, NextFunction } from "express";
 import validator from "validator";
 import ErrorHandler from "../utils/ErrorHandler";
 import Collection, { ICollection } from "../models/collection.model";
-import { FilterQuery, SortOrder } from "mongoose";
+import mongoose, { FilterQuery, PipelineStage, SortOrder } from "mongoose";
+import { ISortOrder } from "../types/typings";
 
 /**
  * Create a new collection
@@ -147,82 +148,100 @@ export const deleteCollection = asyncHandler(async (req: Request, res: Response,
  * @returns A JSON response containing the collections data.
  */
 export const getAllCollections = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // check if search query exists
-    const search = req.query.search as string;
-
-    // check if pagination query exists
-    const page = req.query.page as string;
-    const limit = req.query.limit as string;
-
-    // check if sort query exists
-    const sort = req.query.sort as ("name" | "createdAt" | "updatedAt" | "status") | undefined;
-
-    //  Check if sub category query exists
-    const subCategory = req.query.subCategory as string;
-
     // check if populate query exists
     const populateSubCategory = req.query.populateSubCategory as string;
+    const subCategory = req.query.subcategory as string; // Get sub category query - {filter collections by sub category}
+
+    const sortBy = (req.query.sortby as "name" | "createdAt" | "updatedAt" | "status" | undefined) || "name"; //Get  sort by propery
+    const sortOrder: ISortOrder = (req.query.sortorder as ISortOrder) || "asc"; // Get sort order Query
+
+    // check if sortby query exists and its value is valid
+    if (sortBy && sortBy !== "name" && sortBy !== "createdAt" && sortBy !== "updatedAt" && sortBy !== "status") return next(new ErrorHandler("Invalid sort by property", 400));
+
+    const search = req.query.search as string; // Get search query - {search collections by name}
+
+    const status = req.query.status as string; // Get status query - {filter collections by status}
+
+    const page = (req.query.page as string) || 1; // Get page query - {page number}
+    const pageSize = (req.query.pageSize as string) || 5; // Get page size query - {number of results per page}
+
+    let startFrom = 0; // Calculate skip value
+    let endAt = 5; // Calculate limit value
 
     // Define query objects
     let filters = {} as FilterQuery<ICollection>;
-    let sortBy: string | { [key: string]: SortOrder | { $meta: any } } | [string, SortOrder][] | null | undefined;
-    let populate: any;
+    let pipeline: PipelineStage[] = [];
 
-    // if search query exists
+    let sortCondition: Record<string, 1 | -1 | mongoose.Expression.Meta> = {};
+
+    // update sortQuery object based on sort query
+    if (sortBy) sortCondition[sortBy] = sortOrder === "asc" ? 1 : -1;
+
+    // if search query exists update filters object
     if (search) {
-        filters["$text"] = { $search: search };
+        filters["name"] = { $regex: new RegExp(search, "i") };
     }
 
-    // if sub category query exists
+    // if sub category query exists update filters object
     if (subCategory) {
-        if (!validator.isMongoId(subCategory)) {
-            return next(new ErrorHandler("Please provide a valid sub category id", 400));
-        }
-
-        filters["subcategory"] = subCategory;
+        if (!validator.isMongoId(subCategory)) return next(new ErrorHandler("Please provide a valid sub category id", 400));
+        filters["subcategory"] = new mongoose.Types.ObjectId(subCategory);
     }
 
-    // if pagination query exists
-    if (page && limit) {
-        filters["$and"] = [{ status: true }];
+    // if status query exists - update filters object
+    if (status) {
+        if (status === "true") filters["status"] = true;
+        else if (status === "false") filters["status"] = false;
+        else return next(new ErrorHandler("Invalid status value", 400));
     }
 
-    // if sort query exists
-    if (sort) {
-        if (sort === "name" || sort === "status") {
-            sortBy = { [sort]: "ascending" };
-        } else {
-            sortBy = { [sort]: "descending" };
-        }
-    } else {
-        sortBy = { createdAt: "descending" };
+    // if page query exists - update skip value
+    if (page) startFrom = (Number(page) - 1) * Number(pageSize);
+    if (pageSize) endAt = Number(pageSize);
+
+    if (filters) {
+        pipeline.push({ $match: filters });
     }
 
-    // if populate query exists
     if (populateSubCategory === "true") {
-        populate = { path: "subcategory", select: "name" };
+        pipeline.push({
+            $lookup: {
+                from: "subcategories",
+                localField: "subcategory",
+                foreignField: "_id",
+                as: "subcategory",
+                pipeline: [{ $project: { name: 1, slug: 1 } }],
+            },
+        });
+
+        pipeline.push({ $unwind: "$subcategory" });
     }
 
-    // Find all collections
-    const collections = await Collection.find(filters, null, {
-        // sort: sortBy,
-        populate: populate,
-        // skip: Number(page) * Number(limit),
-        // limit: Number(limit),
+    pipeline.push({
+        $facet: {
+            collections: [{ $sort: sortCondition }, { $skip: startFrom }, { $limit: endAt }],
+            totalCount: [{ $group: { _id: null, total: { $sum: 1 } } }],
+        },
     });
+
+    const collections = await Collection.aggregate(pipeline);
 
     if (!collections) {
         return next(new ErrorHandler("Failed to get all collections", 500));
     }
 
+    const total = collections[0].totalCount.length > 0 ? collections[0].totalCount[0].total : 0;
+    const _collections = collections[0].collections;
+    const maxPage = Math.ceil(total / Number(pageSize));
+    const currentPage = Number(page);
+
     // Send response
     res.status(200).json({
         success: true,
-        data: collections,
-        maxPage: 2,
-        currentPage: 1,
-        hasNext: true,
-        hasPrev: false,
+        total: total,
+        currentPage: currentPage,
+        maxPage: maxPage,
+        data: _collections,
     });
 });
 
