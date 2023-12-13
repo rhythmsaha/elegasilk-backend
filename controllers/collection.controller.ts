@@ -260,7 +260,7 @@ export const getCollection = asyncHandler(async (req: Request, res: Response, ne
 
     // Find collection by id
     const collection = await Collection.findById(id).populate({
-        path: "subCategory",
+        path: "subcategory",
         select: "name slug",
     });
 
