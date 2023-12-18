@@ -40,7 +40,7 @@ app.use("/api/admin", adminRouter);
 app.use("/api/categories", categoryRouter);
 app.use("/api/subcategories", subCategoryRouter);
 app.use("/api/collections", collectionRouter);
-app.use("/api/color", colorRouter);
+app.use("/api/colors", colorRouter);
 
 // Catch Unknown Routes
 app.all("*", (req: Request, res: Response, next: NextFunction) => {

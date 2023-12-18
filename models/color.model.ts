@@ -13,6 +13,8 @@ export interface IColor extends Document {
 const ModelSchema = new Schema<IColor>({
     name: {
         type: String,
+        lowercase: true,
+        unique: true,
         required: [true, "Please provide a name"],
         minlength: [2, "Name must be at least 2 characters long"],
         maxlength: [50, "Name must be at most 50 characters long"],

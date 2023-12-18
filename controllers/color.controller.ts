@@ -188,11 +188,7 @@ export const getColors = asyncHandler(async (req: Request, res: Response, next: 
     }
 
     // Find all colors
-    const colors = await Color.find(filters, null, {
-        sort: sortBy,
-        limit: limit,
-        skip: page * limit - limit,
-    });
+    const colors = await Color.find();
 
     if (!colors) {
         return next(new ErrorHandler("Colors not found", 404));
