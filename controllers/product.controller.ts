@@ -12,7 +12,7 @@ import ErrorHandler from "../utils/ErrorHandler";
  */
 
 export const createProduct = expressAsyncHandler(async (req, res, next) => {
-    const { name, slug, description, images, MRP, price, published, colors, collections, attributes } = req.body as IProduct;
+    const { name, slug, description, images, MRP, price, published, colors, collections, attributes, stock } = req.body as IProduct;
 
     // status validation
     if (published) {
@@ -21,19 +21,22 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
         }
     }
 
+    let createFields: any = {};
+
+    if (name) createFields["name"] = name;
+    if (slug) createFields["slug"] = slug;
+    if (description) createFields["description"] = description;
+    if (images?.length > 0) createFields["images"] = images;
+    if (MRP) createFields["MRP"] = MRP;
+    if (price) createFields["price"] = price;
+    if (typeof published === "boolean") createFields["published"] = published;
+    if (colors?.length > 0) createFields["colors"] = colors;
+    if (collections?.length > 0) createFields["collections"] = collections;
+    if (attributes?.length > 0) createFields["attributes"] = attributes;
+    if (stock) createFields["stock"] = stock;
+
     // Create new product
-    const newProduct = await Product.create({
-        name,
-        slug,
-        description,
-        images,
-        MRP,
-        price,
-        published,
-        colors,
-        collections,
-        attributes,
-    });
+    const newProduct = await Product.create(createFields);
 
     if (!newProduct) {
         return next(new ErrorHandler("Failed to create new product", 500));
@@ -92,5 +95,31 @@ export const updateProduct = expressAsyncHandler(async (req, res, next) => {
     res.status(200).json({
         success: true,
         data: updatedProduct,
+    });
+});
+
+/**
+ * Deletes a product by ID.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns The deleted product.
+ */
+
+export const deleteProduct = expressAsyncHandler(async (req, res, next) => {
+    // Find product by ID and delete
+    const productId = req.params.id;
+
+    const deletedProduct = await Product.findByIdAndDelete(productId);
+
+    if (!deletedProduct) {
+        return next(new ErrorHandler("Failed to delete product", 500));
+    }
+
+    // Send response
+    res.status(200).json({
+        success: true,
+        data: deletedProduct,
     });
 });

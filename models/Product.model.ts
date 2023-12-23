@@ -11,6 +11,8 @@ export interface IProduct extends Document {
     published: boolean;
     colors: string[];
     collections: string[];
+    stock: number;
+
     attributes: [
         {
             category: string;
@@ -22,6 +24,8 @@ export interface IProduct extends Document {
         average: number;
         count: number;
     };
+
+    // Reviews
 }
 
 const ProductSchema = new Schema<IProduct>(
@@ -65,6 +69,11 @@ const ProductSchema = new Schema<IProduct>(
             type: Number,
             required: [true, "Please provide a price"],
             min: [0, "Price cannot be negative"],
+        },
+        stock: {
+            type: Number,
+            default: 1,
+            min: [0, "Stock cannot be negative"],
         },
 
         published: {
