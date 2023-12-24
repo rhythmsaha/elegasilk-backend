@@ -3,15 +3,16 @@ import validator from "validator";
 
 export interface IProduct extends Document {
     name: string;
-    slug: string;
+    slug?: string;
     description: string;
+    content?: string;
     images: string[];
     MRP: number;
     price: number;
     published: boolean;
     colors: string[];
-    collections: string[];
-    stock: number;
+    collections?: string[];
+    stock?: number;
 
     attributes: [
         {
@@ -20,7 +21,7 @@ export interface IProduct extends Document {
         }
     ];
 
-    rating: {
+    rating?: {
         average: number;
         count: number;
     };
@@ -51,10 +52,15 @@ const ProductSchema = new Schema<IProduct>(
             minlength: [20, "Description must be at least 20 characters long"],
         },
 
+        content: {
+            type: String,
+        },
+
         images: [
             {
                 type: String,
                 trim: true,
+                required: [true, "Please provide an image URL"],
                 validate: [validator.isURL, "Please provide a valid image URL"],
             },
         ],

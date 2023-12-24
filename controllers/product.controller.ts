@@ -31,7 +31,7 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
     if (price) createFields["price"] = price;
     if (typeof published === "boolean") createFields["published"] = published;
     if (colors?.length > 0) createFields["colors"] = colors;
-    if (collections?.length > 0) createFields["collections"] = collections;
+    if (collections && collections.length > 0) createFields["collections"] = collections;
     if (attributes?.length > 0) createFields["attributes"] = attributes;
     if (stock) createFields["stock"] = stock;
 
@@ -78,7 +78,7 @@ export const updateProduct = expressAsyncHandler(async (req, res, next) => {
     if (price) updateFields["price"] = price;
     if (typeof published === "boolean") updateFields["published"] = published;
     if (colors?.length > 0) updateFields["colors"] = colors;
-    if (collections?.length > 0) updateFields["collections"] = collections;
+    if (collections && collections?.length > 0) updateFields["collections"] = collections;
     if (attributes?.length > 0) updateFields["attributes"] = attributes;
 
     // Find product by ID and update
