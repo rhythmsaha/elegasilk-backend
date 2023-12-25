@@ -217,12 +217,23 @@ export const getAllCollections = asyncHandler(async (req: Request, res: Response
         pipeline.push({ $unwind: "$subcategory" });
     }
 
-    pipeline.push({
-        $facet: {
-            collections: [{ $sort: sortCondition }, { $skip: startFrom }, { $limit: endAt }],
-            totalCount: [{ $count: "total" }],
-        },
-    });
+    const stopPagination = req.query.stopPagination as string;
+
+    if (stopPagination === "true") {
+        pipeline.push({
+            $facet: {
+                collections: [{ $sort: sortCondition }],
+                totalCount: [{ $count: "total" }],
+            },
+        });
+    } else {
+        pipeline.push({
+            $facet: {
+                collections: [{ $sort: sortCondition }, { $skip: startFrom }, { $limit: endAt }],
+                totalCount: [{ $count: "total" }],
+            },
+        });
+    }
 
     const collections = await Collection.aggregate(pipeline);
 
