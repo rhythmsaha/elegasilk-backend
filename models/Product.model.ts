@@ -17,7 +17,7 @@ export interface IProduct extends Document {
     attributes: [
         {
             category: string;
-            subcategory: string;
+            subcategory: string[];
         }
     ];
 
@@ -109,11 +109,13 @@ const ProductSchema = new Schema<IProduct>(
                     required: [true, "Please provide a category"],
                 },
 
-                subcategory: {
-                    type: Schema.Types.ObjectId,
-                    ref: "SubCategory",
-                    required: [true, "Please provide a subcategory"],
-                },
+                subcategory: [
+                    {
+                        type: Schema.Types.ObjectId,
+                        ref: "SubCategory",
+                        required: [true, "Please provide a subcategory"],
+                    },
+                ],
             },
         ],
     },

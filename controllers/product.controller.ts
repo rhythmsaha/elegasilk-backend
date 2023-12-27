@@ -32,8 +32,23 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
     if (typeof published === "boolean") createFields["published"] = published;
     if (colors?.length > 0) createFields["colors"] = colors;
     if (collections && collections.length > 0) createFields["collections"] = collections;
-    if (attributes?.length > 0) createFields["attributes"] = attributes;
     if (stock) createFields["stock"] = stock;
+
+    if (attributes?.length > 0) {
+        let attr: IProduct["attributes"] = attributes || [];
+
+        let _filteredAttr = attr.filter((item: any) => item.subcategory);
+
+        let _structuredAttributes = _filteredAttr.map((item: any) => {
+            return {
+                category: item._id,
+                subcategory: item.subcategory.split(","),
+            };
+        });
+
+        console.log(_structuredAttributes);
+        createFields["attributes"] = _structuredAttributes;
+    }
 
     // Create new product
     const newProduct = await Product.create(createFields);
@@ -47,6 +62,8 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
         success: true,
         data: newProduct,
     });
+
+    res.send(createFields);
 });
 
 /**
