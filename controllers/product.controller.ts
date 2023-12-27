@@ -62,8 +62,6 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
         success: true,
         data: newProduct,
     });
-
-    res.send(createFields);
 });
 
 /**
