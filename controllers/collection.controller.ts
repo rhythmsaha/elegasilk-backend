@@ -14,7 +14,7 @@ import { ISortOrder } from "../types/typings";
  * @returns Promise<void>
  */
 export const createCollection = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const { name, description, image, status, subcategory } = req.body;
+    const { name, description, image, status } = req.body;
 
     // Name validation handled by mongoose
     // Description validation handled by mongoose
@@ -27,23 +27,12 @@ export const createCollection = asyncHandler(async (req: Request, res: Response,
         }
     }
 
-    if (!subcategory) {
-        return next(new ErrorHandler("Please provide a sub category id", 400));
-    }
-
-    // check if subCategory passed in body and if it is a valid mongo id
-
-    if (!validator.isMongoId(subcategory)) {
-        return next(new ErrorHandler("Please provide a valid sub category id", 400));
-    }
-
     // Create new collection
     const newCollection = await Collection.create({
         name,
         description,
         image,
         status,
-        subcategory,
     });
 
     if (!newCollection) {
@@ -182,12 +171,6 @@ export const getAllCollections = asyncHandler(async (req: Request, res: Response
         filters["name"] = { $regex: new RegExp(search, "i") };
     }
 
-    // if sub category query exists update filters object
-    if (subCategory) {
-        if (!validator.isMongoId(subCategory)) return next(new ErrorHandler("Please provide a valid sub category id", 400));
-        filters["subcategory"] = new mongoose.Types.ObjectId(subCategory);
-    }
-
     // if status query exists - update filters object
     if (status) {
         if (status === "true") filters["status"] = true;
@@ -201,20 +184,6 @@ export const getAllCollections = asyncHandler(async (req: Request, res: Response
 
     if (filters) {
         pipeline.push({ $match: filters });
-    }
-
-    if (populateSubCategory === "true") {
-        pipeline.push({
-            $lookup: {
-                from: "subcategories",
-                localField: "subcategory",
-                foreignField: "_id",
-                as: "subcategory",
-                pipeline: [{ $project: { name: 1, slug: 1 } }],
-            },
-        });
-
-        pipeline.push({ $unwind: "$subcategory" });
     }
 
     const stopPagination = req.query.stopPagination as string;

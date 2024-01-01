@@ -44,13 +44,6 @@ const ModelSchema = new Schema<ICategory>(
             type: Boolean,
             default: true,
         },
-
-        subcategories: [
-            {
-                type: Schema.Types.ObjectId,
-                ref: "SubCategory",
-            },
-        ],
     },
     { timestamps: true }
 );

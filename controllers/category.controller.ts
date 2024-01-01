@@ -4,6 +4,7 @@ import { Request, Response, NextFunction } from "express";
 import ErrorHandler from "../utils/ErrorHandler";
 import validator from "validator";
 import { FilterQuery, SortOrder } from "mongoose";
+import SubCategory from "../models/subCategory.model";
 
 /**
  * Creates a new category.
@@ -194,8 +195,17 @@ export const getAllCategories = asyncHandler(async (req: Request, res: Response,
         categories = await Category.find(filters)
             .sort(sortBy)
             .skip(Number(page) * Number(limit))
-            .limit(Number(limit))
-            .populate("subcategories");
+            .limit(Number(limit));
+
+        const populatedData = categories.map(async (category) => {
+            console.log(category._id);
+            const subcategories = await SubCategory.find({ category: category._id });
+            return { ...category.toObject(), subcategories };
+        });
+
+        categories = await Promise.all(populatedData);
+
+        console.log(categories);
     } else {
         categories = await Category.find(filters)
             .sort(sortBy)

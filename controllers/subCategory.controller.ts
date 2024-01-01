@@ -54,12 +54,6 @@ export const createSubCategory = asyncHandler(async (req: Request, res: Response
         return next(new ErrorHandler("Failed to create new sub category", 500));
     }
 
-    // add relation to category
-
-    await Category.findByIdAndUpdate(category, {
-        $push: { subcategories: newSubCategory._id },
-    });
-
     // Send response
     res.status(201).json({
         success: true,
@@ -155,52 +149,26 @@ export const deleteSubCategory = asyncHandler(async (req: Request, res: Response
  * @throws {ErrorHandler} Will throw an error if failed to get all sub categories
  */
 export const getAllSubCategories = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // check if search query exists
-    const search = req.query.search as string;
-
-    // check if pagination query exists
-    const page = req.query.page as string;
-    const limit = req.query.limit as string;
-
-    // check if sort query exists
-    const sort = req.query.sort as ("name" | "createdAt" | "updatedAt" | "status") | undefined;
-
     // check if category query exists
     const category = req.query.category as string;
 
+    const findCategory = await Category.findOne({ slug: category });
+
+    if (!findCategory) {
+        return next(new ErrorHandler("Please provide a valid category", 400));
+    }
+
     // if search query exists
     let filters = {} as FilterQuery<ISubCategory>;
-    let sortBy: string | { [key: string]: SortOrder | { $meta: any } } | [string, SortOrder][] | null | undefined;
     let populate: any = {};
 
-    if (search) {
-        filters["$text"] = { $search: search };
-    }
-
-    if (page && limit) {
-        filters["$and"] = [{ status: true }];
-        sortBy = { createdAt: -1 };
-    }
-
-    if (sort) {
-        if (sort === "name" || sort === "status") {
-            sortBy = { [sort]: "ascending" };
-        } else {
-            sortBy = { [sort]: "descending" };
-        }
-    }
-
     if (category) {
-        filters["$and"] = [{ category: category }];
+        filters["category"] = findCategory._id;
         populate = { path: "category", select: "name slug" };
     }
 
     // Get all sub categories
-    const subCategories = await SubCategory.find(filters)
-        .sort(sortBy)
-        .populate([...populate])
-        .skip(Number(page) * Number(limit))
-        .limit(Number(limit));
+    const subCategories = await SubCategory.find(filters).populate({ ...populate });
 
     if (!subCategories) {
         return next(new ErrorHandler("Failed to get all sub categories", 500));
@@ -209,6 +177,10 @@ export const getAllSubCategories = asyncHandler(async (req: Request, res: Respon
     // Send response
     res.status(200).json({
         success: true,
+        category: {
+            name: findCategory.name,
+            slug: findCategory.slug,
+        },
         data: subCategories,
     });
 });
@@ -237,3 +209,82 @@ export const getSubCategory = asyncHandler(async (req: Request, res: Response, n
         data: subCategory,
     });
 });
+
+const insertSubCategory = async (subCategory: ISubCategory) => {
+    const subs = [
+        { name: "Andhra and Telegana", slug: "andhra-telegana", description: "Andhra and Telegana sarees showcase traditional weaving techniques and patterns from the region.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Assam", slug: "assam", description: "Assam sarees are known for their rich silk and intricate weaving, often featuring traditional motifs.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Bagh", slug: "bagh", description: "Bagh sarees are adorned with traditional hand-block printing techniques, creating vibrant and colorful patterns.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Bagru", slug: "bagru", description: "Bagru sarees feature unique hand-block printing from the Bagru region, known for its distinct patterns and motifs.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Banaras", slug: "banaras", description: "Banaras sarees, also known as Benarasi sarees, are made in Varanasi and are famous for their luxurious silk and intricate zari work.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Bengal", slug: "bengal", description: "Bengal sarees showcase the rich weaving traditions of West Bengal, often featuring delicate embroidery and vibrant colors.", status: true, category: "6593112d441a1a934e178a87" },
+        {
+            name: "Bhagalpur",
+            slug: "bhagalpur",
+            description: "Bhagalpur sarees, also known as Tussar silk sarees, are handwoven in Bhagalpur, Bihar, and are known for their natural sheen and texture.",
+            status: true,
+            category: "6593112d441a1a934e178a87",
+        },
+        { name: "Chanderi", slug: "chanderi", description: "Chanderi sarees are made in Chanderi, Madhya Pradesh, and are known for their sheer texture, lightweight feel, and traditional motifs.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Chattisgarh", slug: "chattisgarh", description: "Chattisgarh sarees showcase the traditional weaving techniques of the region, often featuring unique patterns and designs.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Contemporary", slug: "contemporary", description: "Contemporary sarees feature modern designs and patterns, blending traditional techniques with contemporary aesthetics.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Gujarat", slug: "gujarat", description: "Gujarat sarees, including Patola sarees, showcase vibrant colors and intricate weaving techniques, often with geometric patterns.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Ikat", slug: "ikat", description: "Ikat sarees showcase a distinctive dyeing technique where the yarns are tie-dyed before weaving, creating bold and blurred patterns.", status: true, category: "6593112d441a1a934e178a87" },
+        {
+            name: "Kanjivaram",
+            slug: "kanjivaram",
+            description: "Kanjivaram sarees, from Kanchipuram, Tamil Nadu, are known for their luxurious silk and intricate zari work, often featuring temple-inspired motifs.",
+            status: true,
+            category: "6593112d441a1a934e178a87",
+        },
+        { name: "Lucknow", slug: "lucknow", description: "Lucknow sarees, also known as Lucknawi sarees, showcase the traditional Chikankari embroidery from Lucknow, Uttar Pradesh.", status: true, category: "6593112d441a1a934e178a87" },
+        {
+            name: "Machilipatnam",
+            slug: "machilipatnam",
+            description: "Machilipatnam sarees, also known as Kalamkari sarees, feature hand-painted or block-printed designs inspired by traditional Indian art.",
+            status: true,
+            category: "6593112d441a1a934e178a87",
+        },
+        {
+            name: "Madhya Pradesh",
+            slug: "madhya-pradesh",
+            description: "Madhya Pradesh sarees showcase the diverse weaving traditions of the state, often featuring unique patterns and vibrant colors.",
+            status: true,
+            category: "6593112d441a1a934e178a87",
+        },
+        { name: "Maheshwar", slug: "maheshwar", description: "Maheshwar sarees are made in Maheshwar, Madhya Pradesh, and are known for their fine cotton or silk fabric and traditional motifs.", status: true, category: "6593112d441a1a934e178a87" },
+        {
+            name: "Mangalgiri",
+            slug: "mangalgiri",
+            description: "Mangalgiri sarees are handwoven in Mangalagiri, Andhra Pradesh, and are known for their distinctive zari borders and vibrant colors.",
+            status: true,
+            category: "6593112d441a1a934e178a87",
+        },
+        {
+            name: "Murshidabad",
+            slug: "murshidabad",
+            description: "Murshidabad sarees showcase the traditional weaving techniques of Murshidabad, West Bengal, often featuring intricate patterns and vibrant colors.",
+            status: true,
+            category: "6593112d441a1a934e178a87",
+        },
+        { name: "Narayanpet", slug: "narayanpet", description: "Narayanpet sarees are handwoven in Narayanpet, Telangana, known for their distinctive checks pattern and vibrant colors.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Odisha", slug: "odisha", description: "Odisha sarees, including Sambalpuri sarees, showcase the traditional weaving techniques and ikat patterns of Odisha.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Paithani", slug: "paithani", description: "Paithani sarees are handwoven silk sarees known for their rich zari work and colorful peacock and flower motifs.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Pochampalli", slug: "pochampalli", description: "Pochampalli sarees showcase the unique ikat weaving technique of Pochampalli, Telangana, often featuring geometric patterns.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Rajasthan", slug: "rajasthan", description: "Rajasthan sarees showcase the vibrant colors and traditional patterns of the state, often with mirror and thread work.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Rajkot", slug: "rajkot", description: "Rajkot sarees, also known as Bandhani sarees, feature tie-dyeing techniques, creating intricate and vibrant patterns.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "South", slug: "south", description: "South Indian sarees showcase the diverse weaving traditions of Southern India, often featuring temple-inspired motifs and vibrant colors.", status: true, category: "6593112d441a1a934e178a87" },
+        {
+            name: "Srikalahasti",
+            slug: "srikalahasti",
+            description: "Srikalahasti sarees showcase the traditional Kalamkari art from Srikalahasti, Andhra Pradesh, often featuring mythological and nature-inspired themes.",
+            status: true,
+            category: "6593112d441a1a934e178a87",
+        },
+        { name: "Ujjain", slug: "ujjain", description: "Ujjain sarees showcase the traditional weaving techniques of Ujjain, Madhya Pradesh, often featuring unique patterns and vibrant colors.", status: true, category: "6593112d441a1a934e178a87" },
+        { name: "Uppada", slug: "uppada", description: "Uppada sarees are handwoven in Uppada, Andhra Pradesh, known for their fine silk and cotton mix and intricate zari borders.", status: true, category: "6593112d441a1a934e178a87" },
+    ];
+
+    const subCategories = await SubCategory.insertMany(subs);
+    console.log(subCategories.length);
+};

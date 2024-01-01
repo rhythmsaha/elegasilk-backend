@@ -17,7 +17,7 @@ subCategoryRouter.put("/:id", authorizeAccessToken(adminSecret), authorizeAdminR
 subCategoryRouter.delete("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), deleteSubCategory);
 
 // Get all subcategories route (GET): /api/subcategory/
-subCategoryRouter.get("/", authorizeAccessToken, getAllSubCategories);
+subCategoryRouter.get("/", authorizeAccessToken(adminSecret), getAllSubCategories);
 
 // Get a subcategory route (GET): /api/subcategory/:id
 subCategoryRouter.get("/:id", authorizeAccessToken(adminSecret), getSubCategory);
