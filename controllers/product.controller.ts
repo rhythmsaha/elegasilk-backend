@@ -33,24 +33,28 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
     if (colors?.length > 0) createFields["colors"] = colors;
     if (collections && collections.length > 0) createFields["collections"] = collections;
     if (stock) createFields["stock"] = stock;
-    if (attributes?.length > 0) createFields["attributes"] = attributes;
+    if (attributes?.length > 0) {
+        const _attrs = attributes.map((attribute) => {
+            return {
+                category: attribute._id,
+                subcategory: attribute.subcategory,
+            };
+        });
+
+        createFields["attributes"] = _attrs;
+    }
 
     // Create new product
-    // const newProduct = await Product.create(createFields);
+    const newProduct = await Product.create(createFields);
 
-    // if (!newProduct) {
-    //     return next(new ErrorHandler("Failed to create new product", 500));
-    // }
+    if (!newProduct) {
+        return next(new ErrorHandler("Failed to create new product", 500));
+    }
 
-    // // Send response
-    // res.status(201).json({
-    //     success: true,
-    //     data: newProduct,
-    // });
-
+    // Send response
     res.status(201).json({
         success: true,
-        data: createFields,
+        data: newProduct,
     });
 });
 

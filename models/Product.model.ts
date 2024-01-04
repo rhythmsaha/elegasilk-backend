@@ -16,6 +16,7 @@ export interface IProduct extends Document {
 
     attributes: [
         {
+            _id: any;
             category: string;
             subcategory: string[];
         }
