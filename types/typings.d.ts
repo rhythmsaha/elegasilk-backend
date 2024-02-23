@@ -1,5 +1,15 @@
 import { Request } from "express";
 import { JwtPayload } from "jsonwebtoken";
+import { IAdmin } from "../models/Admin.model";
+
+interface ICreateAdminInput extends IAdmin {
+    password: string;
+}
+
+interface ILoginAdminInput {
+    username: string;
+    password: string;
+}
 
 export interface IRequestAdminObject {
     _id: string;
@@ -12,7 +22,7 @@ export interface IRequestAdminObject {
     avatar?: string;
 }
 
-type ISortOrder = "asc" | "desc";
+export type ISortOrder = "asc" | "desc";
 
 declare global {
     namespace Express {

@@ -6,12 +6,9 @@ import validator from "validator";
 import { validateStrongPassword } from "../utils/validate";
 import { createAdminPasswordResetCode } from "../services/admin/createTokens";
 import { verifyResetPasswordService } from "../services/admin/validateTokens";
+import AdminSession from "../utils/admin/AdminSession";
+import { ICreateAdminInput, ILoginAdminInput } from "../types/typings";
 import { redis } from "../lib/redis";
-
-//  Create new admin
-interface ICreateAdminInput extends IAdmin {
-    password: string;
-}
 
 /**
  * Registers a new admin user.
@@ -95,12 +92,6 @@ export const registerNewAdmin = asyncHandler(async (req: Request, res: Response,
     }
 });
 
-//  Login admin
-interface ILoginAdminInput {
-    username: string;
-    password: string;
-}
-
 /**
  * Logs in an admin user and returns a JWT access token along with the user data.
  * @param req - The request object.
@@ -133,139 +124,60 @@ export const loginAdmin = asyncHandler(async (req: Request, res: Response, next:
         return next(new ErrorHandler("Invalid credentials!", 401));
     }
 
-    // generate jwt {_id}
-    const accessToken = adminUser.signAccessToken();
-
-    if (!accessToken) {
-        return next(new ErrorHandler("Something went wrong!", 500));
-    }
-
     // send JWT, and initial required parameteres of admin object as Response
-    const userData = {
-        _id: adminUser._id,
-        firstName: adminUser.firstName,
-        lastName: adminUser.lastName,
-        username: adminUser.username,
-        email: adminUser.email,
-        role: adminUser.role,
-        avatar: adminUser.avatar,
-        status: adminUser.status,
-    };
+    const adminSession = AdminSession.from(adminUser);
+    const loginSession = adminSession.loginSession;
 
-    // set cache
-    // redis.set(`admin-user:${userData._id}`, JSON.stringify(userData), "EX", 60 * 60 * 24 * 30);
-
-    res.status(200).json({
-        success: true,
-        message: "Login successful",
-        user: userData,
-        accessToken,
-    });
-});
-
-// Logout admin
-export const logoutAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // remove jwt from redis cache
-    const userId = req.admin?._id;
-
-    // redis.del(`admin-user:${userId}`);
-
-    // send response
-    res.status(200).json({
-        success: true,
-        message: "Logout successful",
-    });
+    res.status(200).json(loginSession);
 });
 
 /**
  * Retrieves the admin session by validating the JWT token from the header, getting the admin ID from the JWT payload, and retrieving the admin from the database. If the admin is not found or the account is inactive, an error is returned. If the admin is found, the user data is retrieved and cached in Redis for 30 days. A new JWT token is created if the expiry time is less than or equal to 24 hours. The user data and access token are sent in the response.
- *
+ * 
+ * Get JWT Token from header -> check if jwt can be decoded -> get admin id from jwt payload -> get admin from database -> check jwt expiry time left -> if jwt expiry time is less or equal to 24 hours then create new jwt -> send response
+ * JWT validation and receiving admin id will be handled by middleware
+
+ * 
  * @param req - The request object.
  * @param res - The response object.
  * @param next - The next middleware function.
  * @returns The admin session data and access token in the response.
  */
 export const getAdminSession = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // Get JWT Token from header -> check if jwt can be decoded -> get admin id from jwt payload -> get admin from database -> check jwt expiry time left -> if jwt expiry time is less or equal to 24 hours then create new jwt -> send response
-
-    // jwt validation and receiving admin id will be handled by middleware
-
     // Get User id from admin object in request
     const adminId = req.admin?._id;
 
-    // Check if admin exists in redis cache
-    // let cacheData = await redis.get(`admin-user:${adminId}`);
-    let cacheData = null;
+    // Get admin from database
+    const admin = await Admin.findById(adminId);
 
-    let userData: any;
-
-    if (!cacheData) {
-        // Get admin from database
-        const admin = await Admin.findById(adminId);
-
-        // Check if admin exists
-        if (!admin) {
-            return next(new ErrorHandler("Admin not found", 404));
-        }
-
-        // Check if admin status is active
-        if (!admin.status) {
-            return next(new ErrorHandler("Your account is not active. Please contact your administrator", 401));
-        }
-
-        userData = {
-            _id: admin._id,
-            firstName: admin.firstName,
-            lastName: admin.lastName,
-            username: admin.username,
-            email: admin.email,
-            role: admin.role,
-            avatar: admin.avatar,
-        };
-
-        // redis.set(`admin-user:${admin._id}`, JSON.stringify(admin), "EX", 60 * 60 * 24 * 30);
-    } else {
-        const admin = JSON.parse(cacheData) as IAdmin;
-
-        if (!admin.status) {
-            return next(new ErrorHandler("Your account is not active. Please contact your administrator", 401));
-        }
-
-        userData = {
-            _id: admin._id,
-            firstName: admin.firstName,
-            lastName: admin.lastName,
-            username: admin.username,
-            email: admin.email,
-            role: admin.role,
-            avatar: admin.avatar,
-        };
-
-        // redis.set(`admin-user:${admin._id}`, JSON.stringify(admin), "EX", 60 * 60 * 24 * 30);
+    // Check if admin exists
+    if (!admin) {
+        return next(new ErrorHandler("Admin not found", 404));
     }
 
-    let accessToken = new Admin({ _id: userData._id, role: userData.role }).signAccessToken();
+    // Check if admin status is active
+    if (!admin.status) {
+        return next(new ErrorHandler("Your account is not active. Please contact your administrator", 401));
+    }
+
+    const adminSession = AdminSession.from(admin);
+    const refreshTokenSession = adminSession.refreshTokenSession;
 
     // Send response
-    res.status(200).json({
-        success: true,
-        message: "Admin session",
-        user: userData,
-        accessToken,
-    });
+    res.status(200).json(refreshTokenSession);
 });
 
 /**
  * Updates the profile of the currently logged in admin.
+ *
+ * Middleware would handle getting user id from jwt token, roles and permissions
+ *
  * @param req - The request object containing the admin's updated profile information.
  * @param res - The response object to send the updated admin profile information.
  * @param next - The next middleware function.
  * @returns A JSON response indicating success or failure of the profile update.
  */
 export const updateSelfProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    // Middleware would handle getting user id from jwt token
-    // Middleware would handle roles and permissions
-
     // Get admin id from admin object in request
     const adminId = req.admin?._id;
     // Get fields to update from body {firstName, lastName, username, email, avatar}
@@ -274,26 +186,13 @@ export const updateSelfProfile = asyncHandler(async (req: Request, res: Response
     // Update admin profile in database
     const updateAdmin = await Admin.findByIdAndUpdate(adminId, { firstName, lastName, username, email, avatar }, { new: true });
 
-    // Send response
-    const userData = {
-        _id: updateAdmin?._id,
-        firstName: updateAdmin?.firstName,
-        lastName: updateAdmin?.lastName,
-        username: updateAdmin?.username,
-        email: updateAdmin?.email,
-        role: updateAdmin?.role,
-        avatar: updateAdmin?.avatar,
-    };
-
     if (!updateAdmin) return next(new ErrorHandler("Something went wrong", 500));
 
-    // redis.set(`admin-user:${updateAdmin._id}`, JSON.stringify(updateAdmin), "EX", 60 * 60 * 24 * 30);
+    const adminSession = AdminSession.from(updateAdmin);
+    const updateProfileSession = adminSession.updateProfileSession;
 
-    res.status(200).json({
-        success: true,
-        message: "Profile updated successfully",
-        user: userData,
-    });
+    // Send response
+    res.status(200).json(updateProfileSession);
 });
 
 /**
@@ -702,61 +601,28 @@ export const getAdmin = asyncHandler(async (req: Request, res: Response, next: N
     // Get user id from params
     const existingUserId = req.params.id;
 
-    if (requestedUserRole === "moderator") return next(new ErrorHandler("unauthorized!", 403));
+    //  send error if requested user role is not authorized
+    if (requestedUserRole !== "superadmin" && requestedUserRole !== "admin") return next(new ErrorHandler("unauthorized!", 403));
 
-    const cachedData = await redis.get(`admin-user:${existingUserId}`);
+    // Check if admin exists
+    const user = await Admin.findById(existingUserId);
 
-    if (cachedData) {
-        const user = JSON.parse(cachedData) as IAdmin;
-        if (!user) return next(new ErrorHandler("User not found", 404));
+    // Send error if user is not found
+    if (!user) return next(new ErrorHandler("User not found", 404));
 
-        // Send response
-        const userData = {
-            _id: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-            avatar: user.avatar,
-            status: user.status,
-        };
+    // Get existing user role
+    const existingUserRole = user?.role;
 
-        res.status(200).json({
-            success: true,
-            message: "User",
-            user: userData,
-        });
-    } else {
-        const user = await Admin.findById(existingUserId);
+    // Only super admin can get another superAdmin and admin
+    if (requestedUserRole === "admin" && existingUserRole === "superadmin") return next(new ErrorHandler("You cannot get a superadmin", 403));
+    if (requestedUserRole === "admin" && existingUserRole === "admin") return next(new ErrorHandler("You cannot get another admin", 403));
 
-        if (!user) return next(new ErrorHandler("User not found", 404));
+    const userData = AdminSession.from(user);
+    const profile = userData.adminProfile;
 
-        let existingUserRole = user?.role;
-
-        // Moderators are not allowed to get any other user
-
-        // Only super admin can get another superAdmin and admin
-        if (requestedUserRole === "admin" && existingUserRole === "superadmin") return next(new ErrorHandler("You cannot get a superadmin", 403));
-
-        if (requestedUserRole === "admin" && existingUserRole === "admin") return next(new ErrorHandler("You cannot get another admin", 403));
-
-        // Send response
-        const userData = {
-            _id: user._id,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-            avatar: user.avatar,
-            status: user.status,
-        };
-
-        res.status(200).json({
-            success: true,
-            message: "User",
-            user: userData,
-        });
-    }
+    // Send response
+    res.status(200).json({
+        success: true,
+        user: profile,
+    });
 });

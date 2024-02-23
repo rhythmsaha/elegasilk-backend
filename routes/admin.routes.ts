@@ -13,7 +13,6 @@ import {
     getAdminSession,
     getAllAdmins,
     loginAdmin,
-    logoutAdmin,
     registerNewAdmin,
     resetPassword,
     updateAdminUser,
@@ -48,17 +47,6 @@ adminRouter.post("/create-new", authorizeAccessToken(adminSecret), authorizeAdmi
  * @param {function} controller - Controller function
  */
 adminRouter.post("/login", loginAdmin);
-
-/**
- * Route for logging out an admin.
- * @name post/api/admin/logout
- * @function
- * @memberof module:adminRouter
- * @param {string} path - Express path
- * @param {function} middleware - Middleware function
- * @param {function} controller - Controller function
- */
-adminRouter.post("/logout", authorizeAccessToken(adminSecret), logoutAdmin);
 
 /**
  * Route for getting the current admin session.
