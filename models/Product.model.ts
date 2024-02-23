@@ -22,6 +22,13 @@ export interface IProduct extends Document {
         }
     ];
 
+    specs: [
+        {
+            name: string;
+            value: string;
+        }
+    ];
+
     rating?: {
         average: number;
         count: number;
@@ -117,6 +124,20 @@ const ProductSchema = new Schema<IProduct>(
                         required: [true, "Please provide a subcategory"],
                     },
                 ],
+            },
+        ],
+
+        specs: [
+            {
+                name: {
+                    type: String,
+                    required: [true, "Please provide a specification name"],
+                },
+
+                value: {
+                    type: String,
+                    required: [true, "Please provide a specification value"],
+                },
             },
         ],
     },
