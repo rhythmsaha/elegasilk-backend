@@ -12,7 +12,7 @@ import ErrorHandler from "../utils/ErrorHandler";
  */
 
 export const createProduct = expressAsyncHandler(async (req, res, next) => {
-    const { name, slug, description, images, MRP, price, published, colors, collections, attributes, stock } = req.body as IProduct;
+    const { name, slug, description, images, MRP, price, published, colors, collections, attributes, stock, specs } = req.body as IProduct;
 
     // status validation
     if (published) {
@@ -43,6 +43,8 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
 
         createFields["attributes"] = _attrs;
     }
+
+    if (specs && specs.length > 0) createFields["specs"] = specs;
 
     // Create new product
     const newProduct = await Product.create(createFields);
@@ -130,5 +132,28 @@ export const deleteProduct = expressAsyncHandler(async (req, res, next) => {
     res.status(200).json({
         success: true,
         data: deletedProduct,
+    });
+});
+
+/**
+ * Gets single product by ID.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns The product.
+ */
+export const getProduct = expressAsyncHandler(async (req, res, next) => {
+    // Find product by ID
+    const product = await Product.findById(req.params.id).populate("attributes.category", "name").populate("attributes.subcategory", "name").populate("collections", "name").populate("colors", "name");
+
+    if (!product) {
+        return next(new ErrorHandler("Product not found", 404));
+    }
+
+    // Send response
+    res.status(200).json({
+        success: true,
+        data: product,
     });
 });
