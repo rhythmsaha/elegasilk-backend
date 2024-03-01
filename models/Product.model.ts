@@ -1,5 +1,7 @@
-import { Document, Schema, model } from "mongoose";
+import { Document, Schema, model, plugin } from "mongoose";
 import validator from "validator";
+import urlSlug from "mongoose-slug-generator";
+plugin(urlSlug);
 
 export interface IProduct extends Document {
     name: string;
@@ -7,8 +9,9 @@ export interface IProduct extends Document {
     description: string;
     content?: string;
     images: string[];
+    sku: string;
     MRP: number;
-    price: number;
+    discount: number;
     published: boolean;
     colors: string[];
     collections?: string[];
@@ -51,17 +54,13 @@ const ProductSchema = new Schema<IProduct>(
         slug: {
             type: String,
             index: true,
+            slug: "name",
         },
 
         description: {
             type: String,
             trim: true,
-            required: [true, "Please provide a description"],
             minlength: [20, "Description must be at least 20 characters long"],
-        },
-
-        content: {
-            type: String,
         },
 
         images: [
@@ -79,10 +78,9 @@ const ProductSchema = new Schema<IProduct>(
             min: [0, "MRP cannot be negative"],
         },
 
-        price: {
+        discount: {
             type: Number,
-            required: [true, "Please provide a price"],
-            min: [0, "Price cannot be negative"],
+            min: [0, "discount cannot be negative"],
         },
         stock: {
             type: Number,
@@ -93,6 +91,14 @@ const ProductSchema = new Schema<IProduct>(
         published: {
             type: Boolean,
             default: false,
+        },
+
+        sku: {
+            type: String,
+            required: [true, "Please provide a SKU"],
+            trim: true,
+            unique: true,
+            index: true,
         },
 
         colors: [

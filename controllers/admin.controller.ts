@@ -8,7 +8,6 @@ import { createAdminPasswordResetCode } from "../services/admin/createTokens";
 import { verifyResetPasswordService } from "../services/admin/validateTokens";
 import AdminSession from "../utils/admin/AdminSession";
 import { ICreateAdminInput, ILoginAdminInput } from "../types/typings";
-import { redis } from "../lib/redis";
 
 /**
  * Registers a new admin user.
@@ -474,8 +473,6 @@ export const updateAdminUser = asyncHandler(async (req: Request, res: Response, 
         status: updatedUser.status,
     };
 
-    // redis.set(`admin-user:${updatedUser._id}`, JSON.stringify(updatedUser), "EX", 60 * 60 * 24 * 30);
-
     res.status(200).json({
         success: true,
         message: "User updated successfully",
@@ -519,7 +516,6 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response, next
     if (requestedUserRole === "admin" && existingUserRole === "admin") return next(new ErrorHandler("You cannot delete another admin", 403));
 
     // Delete admin
-    // await redis.del(`admin-user:${existingUser._id}`);
     const deleted = await existingUser.deleteOne();
 
     if (!deleted) return next(new ErrorHandler("Something went wrong", 500));

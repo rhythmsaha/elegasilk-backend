@@ -239,10 +239,7 @@ export const getCollection = asyncHandler(async (req: Request, res: Response, ne
     const { id } = req.params;
 
     // Find collection by id
-    const collection = await Collection.findById(id).populate({
-        path: "subcategory",
-        select: "name slug",
-    });
+    const collection = await Collection.findById(id);
 
     if (!collection) {
         return next(new ErrorHandler("Failed to get collection", 500));

@@ -9,7 +9,6 @@ export interface ICollection extends Document {
     description?: string;
     image?: string;
     status: boolean;
-    subcategory?: string;
 }
 
 const ModelSchema = new Schema<ICollection>(

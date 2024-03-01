@@ -12,7 +12,7 @@ import ErrorHandler from "../utils/ErrorHandler";
  */
 
 export const createProduct = expressAsyncHandler(async (req, res, next) => {
-    const { name, slug, description, images, MRP, price, published, colors, collections, attributes, stock, specs } = req.body as IProduct;
+    const { name, slug, description, images, MRP, discount, published, colors, collections, attributes, stock, specs, sku } = req.body as IProduct;
 
     // status validation
     if (published) {
@@ -28,8 +28,9 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
     if (description) createFields["description"] = description;
     if (images?.length > 0) createFields["images"] = images;
     if (MRP) createFields["MRP"] = MRP;
-    if (price) createFields["price"] = price;
+    if (discount) createFields["discount"] = discount;
     if (typeof published === "boolean") createFields["published"] = published;
+    if (sku) createFields["sku"] = sku;
     if (colors?.length > 0) createFields["colors"] = colors;
     if (collections && collections.length > 0) createFields["collections"] = collections;
     if (stock) createFields["stock"] = stock;
@@ -70,7 +71,7 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
  */
 
 export const updateProduct = expressAsyncHandler(async (req, res, next) => {
-    const { name, slug, description, images, MRP, price, published, colors, collections, attributes } = req.body as IProduct;
+    const { name, slug, description, images, MRP, discount, published, colors, collections, attributes } = req.body as IProduct;
 
     // status validation
     if (published) {
@@ -86,7 +87,7 @@ export const updateProduct = expressAsyncHandler(async (req, res, next) => {
     if (description) updateFields["description"] = description;
     if (images?.length > 0) updateFields["images"] = images;
     if (MRP) updateFields["MRP"] = MRP;
-    if (price) updateFields["price"] = price;
+    if (discount) updateFields["discount"] = discount;
     if (typeof published === "boolean") updateFields["published"] = published;
     if (colors?.length > 0) updateFields["colors"] = colors;
     if (collections && collections?.length > 0) updateFields["collections"] = collections;

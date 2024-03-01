@@ -204,8 +204,6 @@ export const getAllCategories = asyncHandler(async (req: Request, res: Response,
         });
 
         categories = await Promise.all(populatedData);
-
-        console.log(categories);
     } else {
         categories = await Category.find(filters)
             .sort(sortBy)
@@ -246,9 +244,6 @@ export const getCategory = asyncHandler(async (req: Request, res: Response, next
     if (shouldPopulate) {
         await category.populate("subcategories");
     }
-
-    // Delay
-    // await new Promise((resolve) => setTimeout(resolve, 2000));
 
     // Send response
     res.status(200).json({
