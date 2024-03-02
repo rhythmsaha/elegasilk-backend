@@ -250,6 +250,7 @@ export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
                             slug: 1,
                             images: 1,
                             MRP: 1,
+                            discount: 1,
                             published: 1,
                             stock: 1,
                             updatedAt: 1,

@@ -1,7 +1,7 @@
 import express from "express";
 import { Secret } from "jsonwebtoken";
 import { authorizeAccessToken, authorizeAdminRole } from "../middlewares/auth";
-import { createProduct, getAllProducts, getProduct, updateProduct } from "../controllers/product.controller";
+import { createProduct, deleteProduct, getAllProducts, getProduct, updateProduct } from "../controllers/product.controller";
 
 const adminSecret = process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret;
 
@@ -11,5 +11,6 @@ productRouter.post("/create-new", authorizeAccessToken(adminSecret), createProdu
 productRouter.get("/:id", authorizeAccessToken(adminSecret), getProduct);
 productRouter.put("/:id", authorizeAccessToken(adminSecret), updateProduct);
 productRouter.get("/", authorizeAccessToken(adminSecret), getAllProducts);
+productRouter.delete("/:id", authorizeAccessToken(adminSecret), deleteProduct);
 
 export default productRouter;
