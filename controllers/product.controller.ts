@@ -159,11 +159,11 @@ export const deleteProduct = expressAsyncHandler(async (req, res, next) => {
  * @returns The products.
  */
 export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
-    const sortBy = (req.query.sortby as "name" | "updatedAt" | "status" | "stock" | "price") || "name"; //Get  sort by propery
+    const sortBy = (req.query.sortby as "name" | "updatedAt" | "published" | "stock" | "price") || "name"; //Get  sort by propery
     const sortOrder: ISortOrder = (req.query.sortorder as ISortOrder) || "asc"; // Get sort order Query
 
     // check if sortby query exists and its value is valid
-    if (sortBy && !["name", "updatedAt", "status", "stock", "price"].includes(sortBy)) {
+    if (sortBy && !["name", "updatedAt", "published", "stock", "MRP"].includes(sortBy)) {
         return next(new ErrorHandler("Invalid sort by property", 400));
     }
 
@@ -177,10 +177,7 @@ export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
     const stock = req.query.stock as string; // Get stock query - {filter products by stock}
 
     const page = parseInt(req.query.page as string, 10) || 1; // Get page query
-    const pageSize = parseInt(req.query.limit as string, 10) || 5; // Get page size query
-
-    let startFrom = 0; // Calculate skip value
-    let endAt = 5; // Calculate limit value
+    const pageSize = parseInt(req.query.pageSize as string, 10) || 5; // Get page size query
 
     // Define query object
     let filters = {} as FilterQuery<IProduct>;
@@ -196,22 +193,38 @@ export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
         filters["name"] = { $regex: new RegExp(search, "i") };
     }
 
+    // if stock query exists - update filters object
+    if (stock) {
+        if (stock === "IN_STOCK") {
+            filters["stock"] = {
+                $gte: 10,
+            };
+        } else if (stock === "OUT_OF_STOCK") {
+            filters["stock"] = {
+                $lt: 1,
+            };
+        } else if (stock === "LOW_STOCK") {
+            filters["stock"] = {
+                $lt: 10,
+            };
+        }
+    }
+
     // if status query exists - update filters object
-    if (typeof status === "boolean") {
+    if (status) {
         if (status === "true") filters["published"] = true;
         else if (status === "false") filters["published"] = false;
         else return next(new ErrorHandler("Invalid status value", 400));
     }
-
-    // if page query exists - update skip value
-    if (page) startFrom = (page - 1) * pageSize;
-    if (pageSize) endAt = pageSize;
 
     if (filters) {
         pipeline.push({ $match: filters });
     }
 
     const stopPagination = req.query.stopPagination as string;
+
+    let startFrom = 0; // Calculate skip value
+    let endAt = 5; // Calculate limit value
 
     if (stopPagination === "true") {
         pipeline.push({
@@ -221,9 +234,28 @@ export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
             },
         });
     } else {
+        // if page query exists - update skip value+
+        if (page) startFrom = (page - 1) * pageSize;
+        if (pageSize) endAt = pageSize;
+
         pipeline.push({
             $facet: {
-                products: [{ $sort: sortCondition }, { $skip: startFrom }, { $limit: endAt }],
+                products: [
+                    { $sort: sortCondition },
+                    { $skip: startFrom },
+                    { $limit: endAt },
+                    {
+                        $project: {
+                            name: 1,
+                            slug: 1,
+                            images: 1,
+                            MRP: 1,
+                            published: 1,
+                            stock: 1,
+                            updatedAt: 1,
+                        },
+                    },
+                ],
                 totalCount: [{ $count: "total" }],
             },
         });
@@ -235,10 +267,23 @@ export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Failed to fetch products", 500));
     }
 
+    // Format response
+    const total = products[0].totalCount[0]?.total || 0;
+    const _products = products[0].products;
+    const maxPage = Math.ceil(total / pageSize);
+    let currentPage = page;
+
+    if (currentPage > maxPage) {
+        currentPage = maxPage;
+    }
+
     // Send response
     res.status(200).json({
         success: true,
-        data: products,
+        data: _products,
+        total,
+        currentPage,
+        maxPage,
     });
 });
 
