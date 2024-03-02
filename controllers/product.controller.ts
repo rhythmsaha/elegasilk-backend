@@ -2,6 +2,10 @@ import expressAsyncHandler from "express-async-handler";
 import Product, { IProduct } from "../models/Product.model";
 import ErrorHandler from "../utils/ErrorHandler";
 
+const checkBoolean = (value: any) => {
+    return typeof value === "boolean";
+};
+
 /**
  * Creates a new product.
  *
@@ -15,10 +19,8 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
     const { name, slug, description, images, MRP, discount, published, colors, collections, attributes, stock, specs, sku } = req.body as IProduct;
 
     // status validation
-    if (published) {
-        if (typeof published !== "boolean") {
-            return next(new ErrorHandler("Status must be a boolean value", 400));
-        }
+    if (published && checkBoolean(published)) {
+        return next(new ErrorHandler("Status must be a boolean value", 400));
     }
 
     let createFields: any = {};
@@ -71,19 +73,17 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
  */
 
 export const updateProduct = expressAsyncHandler(async (req, res, next) => {
-    const { name, slug, description, images, MRP, discount, published, colors, collections, attributes } = req.body as IProduct;
+    const { name, description, images, MRP, discount, published, colors, collections, attributes, stock, specs, sku } = req.body as IProduct;
 
     // status validation
-    if (published) {
-        if (typeof published !== "boolean") {
-            return next(new ErrorHandler("Status must be a boolean value", 400));
-        }
+    if (published && checkBoolean(published)) {
+        return next(new ErrorHandler("Status must be a boolean value", 400));
     }
 
     const updateFields: any = {};
 
     if (name) updateFields["name"] = name;
-    if (slug) updateFields["slug"] = slug;
+    if (sku) updateFields["sku"] = sku;
     if (description) updateFields["description"] = description;
     if (images?.length > 0) updateFields["images"] = images;
     if (MRP) updateFields["MRP"] = MRP;
@@ -92,6 +92,8 @@ export const updateProduct = expressAsyncHandler(async (req, res, next) => {
     if (colors?.length > 0) updateFields["colors"] = colors;
     if (collections && collections?.length > 0) updateFields["collections"] = collections;
     if (attributes?.length > 0) updateFields["attributes"] = attributes;
+    if (stock) updateFields["stock"] = stock;
+    if (specs && specs.length > 0) updateFields["specs"] = specs;
 
     // Find product by ID and update
     const updatedProduct = await Product.findByIdAndUpdate(req.params.id, updateFields, {
