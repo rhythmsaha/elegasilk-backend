@@ -198,7 +198,6 @@ export const getAllCategories = asyncHandler(async (req: Request, res: Response,
             .limit(Number(limit));
 
         const populatedData = categories.map(async (category) => {
-            console.log(category._id);
             const subcategories = await SubCategory.find({ category: category._id });
             return { ...category.toObject(), subcategories };
         });

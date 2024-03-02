@@ -14,16 +14,23 @@ export interface IProduct extends Document {
     discount: number;
     published: boolean;
     colors: string[];
-    collections?: string[];
+    collections?: {
+        _id: string;
+        name: string;
+    }[];
     stock?: number;
 
-    attributes: [
-        {
-            _id: any;
-            category: string;
-            subcategory: string[];
-        }
-    ];
+    attributes: {
+        _id: any;
+        category: {
+            _id: string;
+            name: string;
+        };
+        subcategory: {
+            _id: string;
+            name: string;
+        }[];
+    }[];
 
     specs: [
         {

@@ -1,6 +1,7 @@
 import { Request } from "express";
 import { JwtPayload } from "jsonwebtoken";
 import { IAdmin } from "../models/Admin.model";
+import { IProduct } from "../models/Product.model";
 
 interface ICreateAdminInput extends IAdmin {
     password: string;
@@ -31,4 +32,14 @@ declare global {
             jwtPayload?: JwtPayload;
         }
     }
+}
+
+interface formattedProducts extends IProduct {
+    attributes: {
+        _id?: string;
+        category: string;
+        subcategory?: string[];
+    }[];
+
+    collections: string[];
 }

@@ -1,6 +1,7 @@
 import expressAsyncHandler from "express-async-handler";
 import Product, { IProduct } from "../models/Product.model";
 import ErrorHandler from "../utils/ErrorHandler";
+import { formattedProducts } from "../types/typings";
 
 const checkBoolean = (value: any) => {
     return typeof value === "boolean";
@@ -19,7 +20,7 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
     const { name, slug, description, images, MRP, discount, published, colors, collections, attributes, stock, specs, sku } = req.body as IProduct;
 
     // status validation
-    if (published && checkBoolean(published)) {
+    if (published && !checkBoolean(published)) {
         return next(new ErrorHandler("Status must be a boolean value", 400));
     }
 
@@ -76,7 +77,7 @@ export const updateProduct = expressAsyncHandler(async (req, res, next) => {
     const { name, description, images, MRP, discount, published, colors, collections, attributes, stock, specs, sku } = req.body as IProduct;
 
     // status validation
-    if (published && checkBoolean(published)) {
+    if (!checkBoolean(published)) {
         return next(new ErrorHandler("Status must be a boolean value", 400));
     }
 
@@ -91,9 +92,17 @@ export const updateProduct = expressAsyncHandler(async (req, res, next) => {
     if (typeof published === "boolean") updateFields["published"] = published;
     if (colors?.length > 0) updateFields["colors"] = colors;
     if (collections && collections?.length > 0) updateFields["collections"] = collections;
-    if (attributes?.length > 0) updateFields["attributes"] = attributes;
     if (stock) updateFields["stock"] = stock;
     if (specs && specs.length > 0) updateFields["specs"] = specs;
+    if (attributes?.length > 0) {
+        const _attrs = attributes.map((attribute) => {
+            return {
+                category: attribute._id,
+                subcategory: attribute.subcategory,
+            };
+        });
+        updateFields["attributes"] = _attrs;
+    }
 
     // Find product by ID and update
     const updatedProduct = await Product.findByIdAndUpdate(req.params.id, updateFields, {
@@ -153,6 +162,21 @@ export const getProduct = expressAsyncHandler(async (req, res, next) => {
     if (!product) {
         return next(new ErrorHandler("Product not found", 404));
     }
+
+    const formatProductAttrs: any = product.attributes.map(({ _id, category, subcategory }) => {
+        return {
+            _id: category._id,
+            category: category._id,
+            subcategory: subcategory.map((sub) => sub._id),
+        };
+    });
+
+    const formatCollections = product.collections?.map((collection: any) => collection._id);
+    const formatColors = product.colors?.map((color: any) => color._id);
+
+    product.attributes = formatProductAttrs;
+    product.collections = formatCollections;
+    product.colors = formatColors;
 
     // Send response
     res.status(200).json({
