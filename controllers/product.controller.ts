@@ -1,11 +1,14 @@
 import expressAsyncHandler from "express-async-handler";
 import Product, { IProduct } from "../models/Product.model";
 import ErrorHandler from "../utils/ErrorHandler";
-import { formattedProducts } from "../types/typings";
+import { ISortOrder } from "../types/typings";
+import mongoose, { FilterQuery, PipelineStage } from "mongoose";
 
 const checkBoolean = (value: any) => {
     return typeof value === "boolean";
 };
+
+// For admin users Only
 
 /**
  * Creates a new product.
@@ -144,6 +147,98 @@ export const deleteProduct = expressAsyncHandler(async (req, res, next) => {
     res.status(200).json({
         success: true,
         data: deletedProduct,
+    });
+});
+
+/**
+ * Retrieves all products based on the provided search, pagination, sort, and category queries.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns The products.
+ */
+export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
+    const sortBy = (req.query.sortby as "name" | "updatedAt" | "status" | "stock" | "price") || "name"; //Get  sort by propery
+    const sortOrder: ISortOrder = (req.query.sortorder as ISortOrder) || "asc"; // Get sort order Query
+
+    // check if sortby query exists and its value is valid
+    if (sortBy && !["name", "updatedAt", "status", "stock", "price"].includes(sortBy)) {
+        return next(new ErrorHandler("Invalid sort by property", 400));
+    }
+
+    // check if sortorder query exists and its value is valid
+    if (sortOrder && !["asc", "desc"].includes(sortOrder)) {
+        return next(new ErrorHandler("Invalid sort order value", 400));
+    }
+
+    const search = req.query.search as string; // Get search query - {search products by name}
+    const status = req.query.status as string; // Get status query - {filter products by status}
+    const stock = req.query.stock as string; // Get stock query - {filter products by stock}
+
+    const page = parseInt(req.query.page as string, 10) || 1; // Get page query
+    const pageSize = parseInt(req.query.limit as string, 10) || 5; // Get page size query
+
+    let startFrom = 0; // Calculate skip value
+    let endAt = 5; // Calculate limit value
+
+    // Define query object
+    let filters = {} as FilterQuery<IProduct>;
+    let pipeline: PipelineStage[] = [];
+
+    let sortCondition: Record<string, 1 | -1 | mongoose.Expression.Meta> = {};
+
+    // update sortQuery object based on sort query
+    if (sortBy) sortCondition[sortBy] = sortOrder === "asc" ? 1 : -1;
+
+    // if search query exists update filters object
+    if (search) {
+        filters["name"] = { $regex: new RegExp(search, "i") };
+    }
+
+    // if status query exists - update filters object
+    if (typeof status === "boolean") {
+        if (status === "true") filters["published"] = true;
+        else if (status === "false") filters["published"] = false;
+        else return next(new ErrorHandler("Invalid status value", 400));
+    }
+
+    // if page query exists - update skip value
+    if (page) startFrom = (page - 1) * pageSize;
+    if (pageSize) endAt = pageSize;
+
+    if (filters) {
+        pipeline.push({ $match: filters });
+    }
+
+    const stopPagination = req.query.stopPagination as string;
+
+    if (stopPagination === "true") {
+        pipeline.push({
+            $facet: {
+                products: [{ $sort: sortCondition }],
+                totalCount: [{ $count: "total" }],
+            },
+        });
+    } else {
+        pipeline.push({
+            $facet: {
+                products: [{ $sort: sortCondition }, { $skip: startFrom }, { $limit: endAt }],
+                totalCount: [{ $count: "total" }],
+            },
+        });
+    }
+
+    const products = await Product.aggregate(pipeline);
+
+    if (!products) {
+        return next(new ErrorHandler("Failed to fetch products", 500));
+    }
+
+    // Send response
+    res.status(200).json({
+        success: true,
+        data: products,
     });
 });
 

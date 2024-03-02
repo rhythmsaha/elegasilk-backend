@@ -33,13 +33,3 @@ declare global {
         }
     }
 }
-
-interface formattedProducts extends IProduct {
-    attributes: {
-        _id?: string;
-        category: string;
-        subcategory?: string[];
-    }[];
-
-    collections: string[];
-}
