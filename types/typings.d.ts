@@ -23,6 +23,15 @@ export interface IRequestAdminObject {
     avatar?: string;
 }
 
+interface IRequestCustomerObject {
+    _id: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    avatar?: string;
+}
+
 export type ISortOrder = "asc" | "desc";
 
 declare global {
@@ -30,6 +39,7 @@ declare global {
         interface Request {
             admin?: IRequestAdminObject;
             jwtPayload?: JwtPayload;
+            customer?: IRequestCustomerObject;
         }
     }
 }

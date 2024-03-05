@@ -10,7 +10,7 @@ import { IRequestAdminObject } from "../types/typings";
 type role = "moderator" | "admin" | "superadmin" | "guest";
 
 // Authorize Access token
-export const authorizeAccessToken = (secret: Secret) => {
+export const authorizeAccessToken = (secret: Secret, customer = false) => {
     return expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
         try {
             const token = req.headers.authorization?.split(" ")[1];
@@ -21,9 +21,15 @@ export const authorizeAccessToken = (secret: Secret) => {
 
             if (!decoded) throw new Error();
 
-            req.admin = {
-                _id: decoded.id,
-            };
+            if (!customer) {
+                req.admin = {
+                    _id: decoded.id,
+                };
+            } else {
+                req.customer = {
+                    _id: decoded.id,
+                };
+            }
 
             req.jwtPayload = {
                 ...decoded,
@@ -33,6 +39,29 @@ export const authorizeAccessToken = (secret: Secret) => {
         } catch (error: any) {
             return next(new ErrorHandler("Please login to access this resource", 401));
         }
+    });
+};
+
+export const authorizeCustomerAccessToken = (secret: Secret) => {
+    return expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const token = req.headers.authorization?.split(" ")[1];
+            if (!token) throw new Error();
+
+            const decoded = jwt.verify(token, secret) as JwtPayload;
+
+            if (!decoded) throw new Error();
+
+            req.customer = {
+                _id: decoded.id,
+            };
+
+            req.jwtPayload = {
+                ...decoded,
+            };
+
+            next();
+        } catch (error: any) {}
     });
 };
 

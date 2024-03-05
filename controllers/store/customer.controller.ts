@@ -6,44 +6,41 @@ import { default as validator } from "validator";
 import VerificationToken, { IVerificationToken } from "../../models/store/VerificationToken.model";
 import CustomerSession from "../../utils/customer/CustomerSession";
 
+/**
+ * Creates a new customer.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next function.
+ * @returns A JSON response indicating the success or failure of the customer creation.
+ * @throws {ErrorHandler} If there is an error during customer creation.
+ */
 export const createCustomer = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { firstName, lastName, email, password, phone } = req.body as ICustomer & { password: string };
 
     try {
-        let user: ICustomer | undefined = undefined;
         // Check if admin already exists
         const customerExists = await Customer.findOne({ email });
 
         if (customerExists && customerExists.verified) return next(new ErrorHandler("Customer already exists", 400));
 
-        if (customerExists && !customerExists.verified) {
-            await VerificationToken.findOneAndDelete({ userId: customerExists._id });
-            user = customerExists;
-        } else if (!customerExists) {
-            // Create new customer
-            const newCustomer = await Customer.create({ firstName, lastName, email, hashed_password: password, phone });
+        if (customerExists && !customerExists.verified) return resendVerificationLink(req, res, next);
 
-            if (!newCustomer) {
-                return next(new ErrorHandler("Customer registration failed", 400));
-            }
+        // Create new customer
+        const newCustomer = await Customer.create({ firstName, lastName, email, hashed_password: password, phone });
 
-            user = newCustomer;
-        }
-
-        if (!user) {
-            return next(new ErrorHandler("Customer registration failed", 400));
-        }
+        if (!newCustomer) return next(new ErrorHandler("Customer registration failed", 400));
 
         // Generate verification token
-        const token = new VerificationToken().createVerificationToken(user._id);
-        const verificationToken = await VerificationToken.create({ userId: user._id, expireAt: new Date(Date.now() + 3600000), token: token });
+        const token = new VerificationToken().createVerificationToken(newCustomer._id);
+        const verificationToken = await VerificationToken.create({ userId: newCustomer._id, expireAt: new Date(Date.now() + 3600000), token: token });
 
         if (!verificationToken) {
             return next(new ErrorHandler("Customer registration failed", 400));
         }
 
         // Send verification email
-        const verificationLink = `http://localhost:3000/verifyaccount?token=${verificationToken.token}&customerId=${user._id}&tokenID=${verificationToken._id}`;
+        const verificationLink = `http://localhost:3000/verifyaccount?token=${verificationToken.token}&customerId=${newCustomer._id}&tokenID=${verificationToken._id}`;
 
         console.log(verificationLink);
 
@@ -56,6 +53,14 @@ export const createCustomer = asyncHandler(async (req: Request, res: Response, n
     }
 });
 
+/**
+ * Resends the verification link to the customer's email.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next function.
+ * @returns A JSON response indicating the success status, verification link, and message.
+ */
 export const resendVerificationLink = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { email } = req.body as ICustomer;
 
@@ -85,16 +90,24 @@ export const resendVerificationLink = asyncHandler(async (req: Request, res: Res
     }
 
     // Send verification email
-    const verificationLink = `http://localhost:3000/verifyaccount?token=${saveToken.token}&customerId=${customer._id}&tokenID=${saveToken._id}`;
+    const verificationLink = `http://localhost:3000/verifyaccount?token=${token}&customerId=${customer._id}&tokenID=${saveToken._id}`;
 
     console.log(verificationLink);
 
-    res.status(200).json({
+    res.status(201).json({
         success: true,
+        link: verificationLink,
         message: "Verification link sent successfully",
     });
 });
 
+/**
+ * Verifies a customer account using a token and userId.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next function.
+ * @returns A JSON response indicating the success or failure of the account verification.
+ */
 export const verifyCustomerAccount = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { token, userId, tokenId } = req.query as {
         token: string;
@@ -106,65 +119,54 @@ export const verifyCustomerAccount = asyncHandler(async (req: Request, res: Resp
         return next(new ErrorHandler("Invalid token", 400));
     }
 
-    const verificationToken = await VerificationToken.findById(tokenId);
+    try {
+        const verificationToken = await VerificationToken.findById(tokenId);
 
-    if (!verificationToken) {
-        return next(new ErrorHandler("Invalid token", 400));
+        if (!verificationToken) {
+            return next(new ErrorHandler("Invalid token", 400));
+        }
+
+        if (verificationToken.userId.toString() !== userId) {
+            return next(new ErrorHandler("Invalid token", 400));
+        }
+
+        if (!verificationToken.verifyToken(token)) {
+            return next(new ErrorHandler("Invalid token", 400));
+        }
+
+        const customer = await Customer.findById(userId);
+
+        if (!customer) {
+            return next(new ErrorHandler("Account not found", 400));
+        }
+
+        customer.verified = true;
+
+        const saveCustomer = await customer.save();
+
+        if (!saveCustomer) {
+            return next(new ErrorHandler("Account verification failed", 400));
+        }
+
+        await verificationToken.deleteOne();
+
+        res.status(200).json({
+            success: true,
+            message: "Account verified successfully",
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 400));
     }
-
-    if (verificationToken.userId.toString() !== userId) {
-        return next(new ErrorHandler("Invalid token", 400));
-    }
-
-    if (!verificationToken.verifyToken(token)) {
-        return next(new ErrorHandler("Invalid token", 400));
-    }
-
-    const customer = await Customer.findById(userId);
-
-    if (!customer) {
-        return next(new ErrorHandler("Account not found", 400));
-    }
-
-    customer.verified = true;
-
-    const saveCustomer = await customer.save();
-
-    if (!saveCustomer) {
-        return next(new ErrorHandler("Account verification failed", 400));
-    }
-
-    await verificationToken.deleteOne();
-
-    res.status(200).json({
-        success: true,
-        message: "Account verified successfully",
-    });
 });
 
-export const createCustomerByAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const { firstName, lastName, email, password, phone } = req.body as ICustomer & { password: string };
-
-    // Check if admin already exists
-    const customerExists = await Customer.exists({ email });
-
-    if (customerExists && customerExists._id) {
-        return next(new ErrorHandler("Customer already exists", 400));
-    }
-
-    // Create new customer
-    const newCustomer = await Customer.create({ firstName, lastName, email, hashed_password: password, phone, verified: true });
-
-    if (!newCustomer) {
-        return next(new ErrorHandler("Customer registration failed", 400));
-    }
-
-    res.status(201).json({
-        success: true,
-        message: "Customer created successfully",
-    });
-});
-
+/**
+ * Logs in a customer.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next function.
+ * @returns The login session of the customer.
+ */
 export const loginCustomer = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { email, password } = req.body as ICustomer & { password: string };
 
@@ -191,23 +193,63 @@ export const loginCustomer = asyncHandler(async (req: Request, res: Response, ne
     }
 
     const session = CustomerSession.from(customer).loginSession;
-
     res.status(200).json(session);
 });
 
-export const getCustomerSession = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
+export const refreshCustomerSession = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    // Get customer id from request
+    const customerId = req.customer?._id;
+
+    if (!customerId) {
+        return next(new ErrorHandler("Please login to access this resource", 401));
+    }
+    // Find customer by id
+    const customer = await Customer.findById(customerId);
+
+    if (!customer) {
+        return next(new ErrorHandler("Customer not found", 404));
+    }
+
+    // Generate new session
+    const session = CustomerSession.from(customer).refreshTokenSession;
+    res.status(200).json(session);
+});
 
 export const updateCustomerProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
-
-export const updateCustomerProfileByAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
 
 export const updateCustomerPassword = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
 
 export const deleteCustomerAccount = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
 
-export const deleteCustomerAccountByAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
-
 export const getCustomerProfile = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
+
+// Private APIS - For Admins Only
+export const createCustomerByAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { firstName, lastName, email, password, phone } = req.body as ICustomer & { password: string };
+
+    // Check if admin already exists
+    const customerExists = await Customer.exists({ email });
+
+    if (customerExists && customerExists._id) {
+        return next(new ErrorHandler("Customer already exists", 400));
+    }
+
+    // Create new customer
+    const newCustomer = await Customer.create({ firstName, lastName, email, hashed_password: password, phone, verified: true });
+
+    if (!newCustomer) {
+        return next(new ErrorHandler("Customer registration failed", 400));
+    }
+
+    res.status(201).json({
+        success: true,
+        message: "Customer created successfully",
+    });
+});
+
+export const updateCustomerProfileByAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
+
+export const deleteCustomerAccountByAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
 
 export const getCustomerProfileByAdmin = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
 

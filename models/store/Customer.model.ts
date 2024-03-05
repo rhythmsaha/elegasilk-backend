@@ -96,10 +96,6 @@ CustomerSchema.methods.signAccessToken = function () {
     return jwt.sign({ id: this._id }, process.env.CUSTOMER_JWT_SECRET as Secret, { expiresIn: process.env.CUSTOMER_JWT_EXPIRESIN });
 };
 
-CustomerSchema.methods.createVerificationToken = function () {
-    return jwt.sign({ id: this._id }, process.env.CUSTOMER_VERIFICATION_TOKEN_SECRET as Secret, { expiresIn: process.env.CUSTOMER_VERIFICATION_TOKEN_EXPIRESIN });
-};
-
 // Get Customer Profile
 CustomerSchema.methods.getCustomerProfile = function () {
     return {
