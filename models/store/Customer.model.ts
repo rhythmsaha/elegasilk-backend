@@ -88,7 +88,9 @@ CustomerSchema.pre<ICustomer>("save", async function (next) {
 
 // Compare password
 CustomerSchema.methods.comparePassword = async function (enteredPassword: string) {
-    return crypto.pbkdf2Sync(enteredPassword, process.env.CUSTOMER_PWD_SALT!, 1000, 64, "sha512").toString("hex") === this.hashed_password;
+    const salt = process.env.CUSTOMER_PWD_SALT;
+    const hashed_password = await crypto.pbkdf2Sync(enteredPassword, salt!, 1000, 64, "sha512").toString("hex");
+    return this.hashed_password === hashed_password;
 };
 
 // Sign Access Token

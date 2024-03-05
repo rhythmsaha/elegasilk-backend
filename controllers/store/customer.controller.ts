@@ -180,7 +180,9 @@ export const loginCustomer = asyncHandler(async (req: Request, res: Response, ne
         return next(new ErrorHandler("Account doesn't exist!", 404));
     }
 
-    if (!customer.comparePassword(password)) {
+    const comparePassword = await customer.comparePassword(password);
+
+    if (!comparePassword) {
         return next(new ErrorHandler("Invalid email or password!", 400));
     }
 
@@ -196,6 +198,14 @@ export const loginCustomer = asyncHandler(async (req: Request, res: Response, ne
     res.status(200).json(session);
 });
 
+/**
+ * Refreshes the customer session.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next function.
+ * @returns The refreshed customer session.
+ */
 export const refreshCustomerSession = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     // Get customer id from request
     const customerId = req.customer?._id;
