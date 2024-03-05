@@ -7,7 +7,7 @@ export interface IVerificationToken extends Document {
     expireAt: Date;
 
     // Methods
-    createVerificationToken: (userId: ObjectId) => void;
+    createVerificationToken: (userId: ObjectId) => string;
     verifyToken: (token: string) => boolean;
 }
 

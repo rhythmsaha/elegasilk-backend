@@ -1,6 +1,6 @@
 import express from "express";
 import { Secret } from "jsonwebtoken";
-import { authorizeAccessToken } from "../../middlewares/auth";
+import {} from "../../middlewares/auth";
 import { createCustomer, loginCustomer, verifyCustomerAccount } from "../../controllers/store/customer.controller";
 
 const customerRouter = express.Router();

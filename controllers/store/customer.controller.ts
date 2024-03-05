@@ -10,30 +10,40 @@ export const createCustomer = asyncHandler(async (req: Request, res: Response, n
     const { firstName, lastName, email, password, phone } = req.body as ICustomer & { password: string };
 
     try {
+        let user: ICustomer | undefined = undefined;
         // Check if admin already exists
-        const customerExists = await Customer.exists({ email });
+        const customerExists = await Customer.findOne({ email });
 
-        if (customerExists && customerExists._id) {
-            return next(new ErrorHandler("Customer already exists", 400));
+        if (customerExists && customerExists.verified) return next(new ErrorHandler("Customer already exists", 400));
+
+        if (customerExists && !customerExists.verified) {
+            await VerificationToken.findOneAndDelete({ userId: customerExists._id });
+            user = customerExists;
+        } else if (!customerExists) {
+            // Create new customer
+            const newCustomer = await Customer.create({ firstName, lastName, email, hashed_password: password, phone });
+
+            if (!newCustomer) {
+                return next(new ErrorHandler("Customer registration failed", 400));
+            }
+
+            user = newCustomer;
         }
 
-        // Create new customer
-        const newCustomer = await Customer.create({ firstName, lastName, email, hashed_password: password, phone });
-
-        if (!newCustomer) {
+        if (!user) {
             return next(new ErrorHandler("Customer registration failed", 400));
         }
 
         // Generate verification token
-        const token = new VerificationToken().createVerificationToken(newCustomer._id);
-        const verificationToken = await VerificationToken.create({ userId: newCustomer._id, expireAt: new Date(Date.now() + 3600000), token: token });
+        const token = new VerificationToken().createVerificationToken(user._id);
+        const verificationToken = await VerificationToken.create({ userId: user._id, expireAt: new Date(Date.now() + 3600000), token: token });
 
         if (!verificationToken) {
             return next(new ErrorHandler("Customer registration failed", 400));
         }
 
         // Send verification email
-        const verificationLink = `http://localhost:3000/verifyaccount?token=${verificationToken.token}&customerId=${newCustomer._id}&tokenID=${verificationToken._id}`;
+        const verificationLink = `http://localhost:3000/verifyaccount?token=${verificationToken.token}&customerId=${user._id}&tokenID=${verificationToken._id}`;
 
         console.log(verificationLink);
 
@@ -44,6 +54,45 @@ export const createCustomer = asyncHandler(async (req: Request, res: Response, n
     } catch (error: any) {
         return next(new ErrorHandler("Customer registration failed", error.statusCode || 500));
     }
+});
+
+export const resendVerificationLink = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { email } = req.body as ICustomer;
+
+    if (!validator.isEmail(email)) {
+        return next(new ErrorHandler("Invalid email", 400));
+    }
+
+    const customer = await Customer.findOne({ email });
+
+    if (!customer) {
+        return next(new ErrorHandler("Account not found", 400));
+    }
+
+    if (customer.verified) {
+        return next(new ErrorHandler("Account already verified", 400));
+    }
+
+    await VerificationToken.findOneAndDelete({ userId: customer._id });
+
+    const token = new VerificationToken().createVerificationToken(customer._id);
+    const _verificationToken = new VerificationToken({ userId: customer._id, expireAt: new Date(Date.now() + 3600000), token: token });
+
+    const saveToken = await _verificationToken.save();
+
+    if (!saveToken) {
+        return next(new ErrorHandler("Failed to resend verification link", 400));
+    }
+
+    // Send verification email
+    const verificationLink = `http://localhost:3000/verifyaccount?token=${saveToken.token}&customerId=${customer._id}&tokenID=${saveToken._id}`;
+
+    console.log(verificationLink);
+
+    res.status(200).json({
+        success: true,
+        message: "Verification link sent successfully",
+    });
 });
 
 export const verifyCustomerAccount = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
