@@ -13,6 +13,7 @@ import subCategoryRouter from "./routes/subcategories.routes";
 import collectionRouter from "./routes/collections.routes";
 import colorRouter from "./routes/color.routes";
 import productRouter from "./routes/product.routes";
+import StoreCustomerRoutes from "./routes/store/customer.routes";
 
 // Initialize App
 export const app = express();
@@ -43,6 +44,9 @@ app.use("/api/subcategories", subCategoryRouter);
 app.use("/api/collections", collectionRouter);
 app.use("/api/colors", colorRouter);
 app.use("/api/products", productRouter);
+
+// StoreFrontAPI
+app.use("/api/store/user", StoreCustomerRoutes);
 
 // Catch Unknown Routes
 app.all("*", (req: Request, res: Response, next: NextFunction) => {

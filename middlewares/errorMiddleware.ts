@@ -29,6 +29,12 @@ const errorMiddleware = (err: any, req: Request, res: Response, next: NextFuncti
         err = new ErrorHandler(message, 400);
     }
 
+    // validation error
+    if (err.name === "ValidationError") {
+        const message = Object.values(err.errors).map((value: any) => value.message);
+        err = new ErrorHandler(message, 400);
+    }
+
     res.status(err.statusCode).json({
         success: false,
         message: err.message,
