@@ -20,7 +20,21 @@ const checkBoolean = (value: any) => {
  */
 
 export const createProduct = expressAsyncHandler(async (req, res, next) => {
-    const { name, slug, description, images, MRP, discount, published, colors, collections, attributes, stock, specs, sku } = req.body as IProduct;
+    const {
+        name,
+        slug,
+        description,
+        images,
+        MRP,
+        discount,
+        published,
+        colors,
+        collections,
+        attributes,
+        stock,
+        specs,
+        sku,
+    } = req.body as IProduct;
 
     // status validation
     if (published && !checkBoolean(published)) {
@@ -38,7 +52,8 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
     if (typeof published === "boolean") createFields["published"] = published;
     if (sku) createFields["sku"] = sku;
     if (colors?.length > 0) createFields["colors"] = colors;
-    if (collections && collections.length > 0) createFields["collections"] = collections;
+    if (collections && collections.length > 0)
+        createFields["collections"] = collections;
     if (stock) createFields["stock"] = stock;
     if (attributes?.length > 0) {
         const _attrs = attributes.map((attribute) => {
@@ -77,7 +92,20 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
  */
 
 export const updateProduct = expressAsyncHandler(async (req, res, next) => {
-    const { name, description, images, MRP, discount, published, colors, collections, attributes, stock, specs, sku } = req.body as IProduct;
+    const {
+        name,
+        description,
+        images,
+        MRP,
+        discount,
+        published,
+        colors,
+        collections,
+        attributes,
+        stock,
+        specs,
+        sku,
+    } = req.body as IProduct;
 
     // status validation
     if (!checkBoolean(published)) {
@@ -94,7 +122,8 @@ export const updateProduct = expressAsyncHandler(async (req, res, next) => {
     if (discount) updateFields["discount"] = discount;
     if (typeof published === "boolean") updateFields["published"] = published;
     if (colors?.length > 0) updateFields["colors"] = colors;
-    if (collections && collections?.length > 0) updateFields["collections"] = collections;
+    if (collections && collections?.length > 0)
+        updateFields["collections"] = collections;
     if (stock) updateFields["stock"] = stock;
     if (specs && specs.length > 0) updateFields["specs"] = specs;
     if (attributes?.length > 0) {
@@ -108,10 +137,14 @@ export const updateProduct = expressAsyncHandler(async (req, res, next) => {
     }
 
     // Find product by ID and update
-    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, updateFields, {
-        new: true,
-        runValidators: true,
-    });
+    const updatedProduct = await Product.findByIdAndUpdate(
+        req.params.id,
+        updateFields,
+        {
+            new: true,
+            runValidators: true,
+        }
+    );
 
     if (!updatedProduct) {
         return next(new ErrorHandler("Failed to update product", 500));
@@ -159,11 +192,20 @@ export const deleteProduct = expressAsyncHandler(async (req, res, next) => {
  * @returns The products.
  */
 export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
-    const sortBy = (req.query.sortby as "name" | "updatedAt" | "published" | "stock" | "price") || "name"; //Get  sort by propery
+    const sortBy =
+        (req.query.sortby as
+            | "name"
+            | "updatedAt"
+            | "published"
+            | "stock"
+            | "price") || "name"; //Get  sort by propery
     const sortOrder: ISortOrder = (req.query.sortorder as ISortOrder) || "asc"; // Get sort order Query
 
     // check if sortby query exists and its value is valid
-    if (sortBy && !["name", "updatedAt", "published", "stock", "MRP"].includes(sortBy)) {
+    if (
+        sortBy &&
+        !["name", "updatedAt", "published", "stock", "MRP"].includes(sortBy)
+    ) {
         return next(new ErrorHandler("Invalid sort by property", 400));
     }
 
@@ -298,21 +340,29 @@ export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
  */
 export const getProduct = expressAsyncHandler(async (req, res, next) => {
     // Find product by ID
-    const product = await Product.findById(req.params.id).populate("attributes.category", "name").populate("attributes.subcategory", "name").populate("collections", "name").populate("colors", "name");
+    const product = await Product.findById(req.params.id)
+        .populate("attributes.category", "name")
+        .populate("attributes.subcategory", "name")
+        .populate("collections", "name")
+        .populate("colors", "name");
 
     if (!product) {
         return next(new ErrorHandler("Product not found", 404));
     }
 
-    const formatProductAttrs: any = product.attributes.map(({ _id, category, subcategory }) => {
-        return {
-            _id: category._id,
-            category: category._id,
-            subcategory: subcategory.map((sub) => sub._id),
-        };
-    });
+    const formatProductAttrs: any = product.attributes.map(
+        ({ _id, category, subcategory }) => {
+            return {
+                _id: category._id,
+                category: category._id,
+                subcategory: subcategory.map((sub) => sub._id),
+            };
+        }
+    );
 
-    const formatCollections = product.collections?.map((collection: any) => collection._id);
+    const formatCollections = product.collections?.map(
+        (collection: any) => collection._id
+    );
     const formatColors = product.colors?.map((color: any) => color._id);
 
     product.attributes = formatProductAttrs;
