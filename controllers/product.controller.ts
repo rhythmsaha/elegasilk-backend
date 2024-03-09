@@ -3,6 +3,7 @@ import Product, { IProduct } from "../models/Product.model";
 import ErrorHandler from "../utils/ErrorHandler";
 import { ISortOrder } from "../types/typings";
 import mongoose, { FilterQuery, PipelineStage } from "mongoose";
+import Color from "../models/color.model";
 
 const checkBoolean = (value: any) => {
     return typeof value === "boolean";
@@ -375,3 +376,97 @@ export const getProduct = expressAsyncHandler(async (req, res, next) => {
         data: product,
     });
 });
+
+// For public users
+export const getProductFilters = expressAsyncHandler(async (req, res, next) => {
+    const query = {};
+
+    try {
+        const [colors, attributes] = await Promise.all([
+            Product.aggregate([
+                { $match: query },
+                { $unwind: "$colors" },
+                {
+                    $lookup: {
+                        from: "colors",
+                        localField: "colors",
+                        foreignField: "_id",
+                        as: "color",
+                    },
+                },
+                { $unwind: "$color" },
+                {
+                    $group: {
+                        _id: "$color._id",
+                        name: { $first: "$color.name" },
+                        hex: { $first: "$color.hex" },
+                    },
+                },
+            ]),
+
+            Product.aggregate([
+                { $match: query },
+                { $unwind: "$attributes" },
+                { $unwind: "$attributes.subcategory" },
+                {
+                    $lookup: {
+                        from: "categories",
+                        localField: "attributes.category",
+                        foreignField: "_id",
+                        as: "attributes.category",
+                    },
+                },
+                {
+                    $lookup: {
+                        from: "subcategories",
+                        localField: "attributes.subcategory",
+                        foreignField: "_id",
+                        as: "attributes.subcategory",
+                    },
+                },
+                { $unwind: "$attributes.category" },
+                { $unwind: "$attributes.subcategory" },
+                {
+                    $group: {
+                        _id: "$attributes.category._id",
+                        name: { $first: "$attributes.category.name" },
+                        subcategories: {
+                            $addToSet: {
+                                _id: "$attributes.subcategory._id",
+                                name: "$attributes.subcategory.name",
+                            },
+                        },
+                    },
+                },
+            ]),
+        ]);
+
+        res.json({
+            attributes: attributes,
+            colors: colors,
+        });
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+export const getp = expressAsyncHandler(async (req, res, next) => {
+    const query = {
+        subcategory: "659308ee2784df2d7ed925d7",
+    };
+
+    const products = await Product.find({
+        "attributes.subcategory": {
+            $in: ["659308f32784df2d7ed925de", "659320eee600b8b93d027f5d"],
+        },
+    });
+
+    res.json(products.length);
+
+    try {
+    } catch (error: any) {
+        res.status(500).json({ message: error.message });
+    }
+});
+
+// const attributes = await ;
