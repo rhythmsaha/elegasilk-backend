@@ -189,7 +189,8 @@ export const deleteProduct = expressAsyncHandler(async (req, res, next) => {
  */
 export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
     const sortBy =
-        (req.query.sortby as "name" | "updatedAt" | "published" | "stock" | "price") || "name"; //Get  sort by propery
+        (req.query.sortby as "name" | "updatedAt" | "published" | "stock" | "MRP") || "name"; //Get  sort by propery
+
     const sortOrder: ISortOrder = (req.query.sortorder as ISortOrder) || "asc"; // Get sort order Query
 
     // check if sortby query exists and its value is valid
