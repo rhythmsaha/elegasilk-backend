@@ -6,7 +6,13 @@
 import express from "express";
 import { Secret } from "jsonwebtoken";
 import { authorizeAccessToken, authorizeAdminRole } from "../middlewares/auth";
-import { createCollection, deleteCollection, getAllCollections, getCollection, updateCollection } from "../controllers/collection.controller";
+import {
+    createCollection,
+    deleteCollection,
+    getAllCollections,
+    getCollection,
+    updateCollection,
+} from "../controllers/collection.controller";
 
 const adminSecret = process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret;
 
@@ -23,7 +29,12 @@ const collectionRouter = express.Router();
  * @param {function} middleware - Express middleware
  * @param {function} handler - Express handler
  */
-collectionRouter.post("/create-new", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), createCollection);
+collectionRouter.post(
+    "/create-new",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    createCollection
+);
 
 /**
  * Route for updating a collection.
@@ -36,7 +47,12 @@ collectionRouter.post("/create-new", authorizeAccessToken(adminSecret), authoriz
  * @param {function} middleware - Express middleware
  * @param {function} handler - Express handler
  */
-collectionRouter.put("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), updateCollection);
+collectionRouter.put(
+    "/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    updateCollection
+);
 
 /**
  * Route for deleting a collection.
@@ -49,7 +65,12 @@ collectionRouter.put("/:id", authorizeAccessToken(adminSecret), authorizeAdminRo
  * @param {function} middleware - Express middleware
  * @param {function} handler - Express handler
  */
-collectionRouter.delete("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), deleteCollection);
+collectionRouter.delete(
+    "/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    deleteCollection
+);
 
 /**
  * Route for getting all collections.
@@ -62,7 +83,12 @@ collectionRouter.delete("/:id", authorizeAccessToken(adminSecret), authorizeAdmi
  * @param {function} middleware - Express middleware
  * @param {function} handler - Express handler
  */
-collectionRouter.get("/", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), getAllCollections);
+collectionRouter.get(
+    "/",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin", "moderator"),
+    getAllCollections
+);
 
 /**
  * Route for getting a collection by ID.
@@ -75,6 +101,11 @@ collectionRouter.get("/", authorizeAccessToken(adminSecret), authorizeAdminRole(
  * @param {function} middleware - Express middleware
  * @param {function} handler - Express handler
  */
-collectionRouter.get("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), getCollection);
+collectionRouter.get(
+    "/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin", "moderator"),
+    getCollection
+);
 
 export default collectionRouter;

@@ -2,8 +2,9 @@ import expressAsyncHandler from "express-async-handler";
 import Product, { IProduct } from "../models/Product.model";
 import ErrorHandler from "../utils/ErrorHandler";
 import { ISortOrder } from "../types/typings";
-import mongoose, { FilterQuery, PipelineStage } from "mongoose";
+import mongoose, { FilterQuery, Mongoose, PipelineStage } from "mongoose";
 import Color from "../models/color.model";
+import splitQuery from "../utils/splitQuery";
 
 const checkBoolean = (value: any) => {
     return typeof value === "boolean";
@@ -53,8 +54,7 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
     if (typeof published === "boolean") createFields["published"] = published;
     if (sku) createFields["sku"] = sku;
     if (colors?.length > 0) createFields["colors"] = colors;
-    if (collections && collections.length > 0)
-        createFields["collections"] = collections;
+    if (collections && collections.length > 0) createFields["collections"] = collections;
     if (stock) createFields["stock"] = stock;
     if (attributes?.length > 0) {
         const _attrs = attributes.map((attribute) => {
@@ -123,8 +123,7 @@ export const updateProduct = expressAsyncHandler(async (req, res, next) => {
     if (discount) updateFields["discount"] = discount;
     if (typeof published === "boolean") updateFields["published"] = published;
     if (colors?.length > 0) updateFields["colors"] = colors;
-    if (collections && collections?.length > 0)
-        updateFields["collections"] = collections;
+    if (collections && collections?.length > 0) updateFields["collections"] = collections;
     if (stock) updateFields["stock"] = stock;
     if (specs && specs.length > 0) updateFields["specs"] = specs;
     if (attributes?.length > 0) {
@@ -138,14 +137,10 @@ export const updateProduct = expressAsyncHandler(async (req, res, next) => {
     }
 
     // Find product by ID and update
-    const updatedProduct = await Product.findByIdAndUpdate(
-        req.params.id,
-        updateFields,
-        {
-            new: true,
-            runValidators: true,
-        }
-    );
+    const updatedProduct = await Product.findByIdAndUpdate(req.params.id, updateFields, {
+        new: true,
+        runValidators: true,
+    });
 
     if (!updatedProduct) {
         return next(new ErrorHandler("Failed to update product", 500));
@@ -194,19 +189,11 @@ export const deleteProduct = expressAsyncHandler(async (req, res, next) => {
  */
 export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
     const sortBy =
-        (req.query.sortby as
-            | "name"
-            | "updatedAt"
-            | "published"
-            | "stock"
-            | "price") || "name"; //Get  sort by propery
+        (req.query.sortby as "name" | "updatedAt" | "published" | "stock" | "price") || "name"; //Get  sort by propery
     const sortOrder: ISortOrder = (req.query.sortorder as ISortOrder) || "asc"; // Get sort order Query
 
     // check if sortby query exists and its value is valid
-    if (
-        sortBy &&
-        !["name", "updatedAt", "published", "stock", "MRP"].includes(sortBy)
-    ) {
+    if (sortBy && !["name", "updatedAt", "published", "stock", "MRP"].includes(sortBy)) {
         return next(new ErrorHandler("Invalid sort by property", 400));
     }
 
@@ -351,19 +338,15 @@ export const getProduct = expressAsyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Product not found", 404));
     }
 
-    const formatProductAttrs: any = product.attributes.map(
-        ({ _id, category, subcategory }) => {
-            return {
-                _id: category._id,
-                category: category._id,
-                subcategory: subcategory.map((sub) => sub._id),
-            };
-        }
-    );
+    const formatProductAttrs: any = product.attributes.map(({ _id, category, subcategory }) => {
+        return {
+            _id: category._id,
+            category: category._id,
+            subcategory: subcategory.map((sub) => sub._id),
+        };
+    });
 
-    const formatCollections = product.collections?.map(
-        (collection: any) => collection._id
-    );
+    const formatCollections = product.collections?.map((collection: any) => collection._id);
     const formatColors = product.colors?.map((color: any) => color._id);
 
     product.attributes = formatProductAttrs;
@@ -379,7 +362,37 @@ export const getProduct = expressAsyncHandler(async (req, res, next) => {
 
 // For public users
 export const getProductFilters = expressAsyncHandler(async (req, res, next) => {
-    const query = {};
+    const { attributes, colors, collections, price } = req.query as {
+        attributes: string;
+        colors: string;
+        collections: string;
+        price: string;
+    };
+
+    const query: {
+        [key: string]: any;
+    } = {};
+
+    if (attributes) {
+        const _attrs = splitQuery(attributes);
+        query["attributes.subcategory"] = {
+            $in: _attrs,
+        };
+    }
+
+    if (collections) {
+        const _collections = splitQuery(collections);
+        query["collections"] = {
+            $in: _collections,
+        };
+    }
+
+    if (colors) {
+        const _colors = splitQuery(colors);
+        query["colors"] = {
+            $in: _colors,
+        };
+    }
 
     try {
         const [colors, attributes] = await Promise.all([
@@ -441,9 +454,15 @@ export const getProductFilters = expressAsyncHandler(async (req, res, next) => {
             ]),
         ]);
 
+        const sortedAttributes = attributes.sort((a, b) => a.name.localeCompare(b.name));
+        const sortedColors = colors.sort((a, b) => a.name.localeCompare(b.name));
+
         res.json({
-            attributes: attributes,
-            colors: colors,
+            success: true,
+            filterOptions: {
+                attributes: sortedAttributes,
+                colors: sortedColors,
+            },
         });
     } catch (error: any) {
         res.status(500).json({ message: error.message });
@@ -452,12 +471,12 @@ export const getProductFilters = expressAsyncHandler(async (req, res, next) => {
 
 export const getp = expressAsyncHandler(async (req, res, next) => {
     const query = {
-        subcategory: "659308ee2784df2d7ed925d7",
+        subcategory: "657070813d9601c4f9cb5ebb",
     };
 
     const products = await Product.find({
         "attributes.subcategory": {
-            $in: ["659308f32784df2d7ed925de", "659320eee600b8b93d027f5d"],
+            $in: ["657378dc7c5a3cb5bae7156f"],
         },
     });
 

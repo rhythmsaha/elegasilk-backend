@@ -13,7 +13,11 @@ import subCategoryRouter from "./routes/subcategories.routes";
 import collectionRouter from "./routes/collections.routes";
 import colorRouter from "./routes/color.routes";
 import productRouter from "./routes/product.routes";
+
+//Import StoreFrontAPI Routes
 import StoreCustomerRoutes from "./routes/store/customer.routes";
+import StoreProductRoutes from "./routes/store/products.routes";
+import StoreCollectionRoutes from "./routes/store/collection.routes";
 
 // Initialize App
 export const app = express();
@@ -47,6 +51,8 @@ app.use("/api/products", productRouter);
 
 // StoreFrontAPI
 app.use("/api/store/user", StoreCustomerRoutes);
+app.use("/api/store/products", StoreProductRoutes);
+app.use("/api/store/collections", StoreCollectionRoutes);
 
 // Catch Unknown Routes
 app.all("*", (req: Request, res: Response, next: NextFunction) => {
