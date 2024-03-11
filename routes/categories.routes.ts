@@ -5,7 +5,13 @@
 
 import express from "express";
 import { authorizeAccessToken, authorizeAdminRole } from "../middlewares/auth";
-import { createCategory, deleteCategory, getAllCategories, getCategory, updateCategory } from "../controllers/category.controller";
+import {
+    createCategory,
+    deleteCategory,
+    getAllCategories,
+    getCategory,
+    updateCategory,
+} from "../controllers/category.controller";
 import { Secret } from "jsonwebtoken";
 
 const adminSecret = process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret;
@@ -21,7 +27,12 @@ const categoryRouter = express.Router();
  * @param {function} middleware - Express middleware
  * @param {function} controller - Express controller
  */
-categoryRouter.post("/create-new", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), createCategory);
+categoryRouter.post(
+    "/create-new",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    createCategory
+);
 
 /**
  * Route for updating a category.
@@ -32,7 +43,12 @@ categoryRouter.post("/create-new", authorizeAccessToken(adminSecret), authorizeA
  * @param {function} middleware - Express middleware
  * @param {function} controller - Express controller
  */
-categoryRouter.put("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), updateCategory);
+categoryRouter.put(
+    "/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    updateCategory
+);
 
 /**
  * Route for deleting a category.
@@ -43,7 +59,12 @@ categoryRouter.put("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole
  * @param {function} middleware - Express middleware
  * @param {function} controller - Express controller
  */
-categoryRouter.delete("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), deleteCategory);
+categoryRouter.delete(
+    "/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    deleteCategory
+);
 
 /**
  * Route for getting all categories.

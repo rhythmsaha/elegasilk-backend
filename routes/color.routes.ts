@@ -6,7 +6,13 @@
 import express from "express";
 import { Secret } from "jsonwebtoken";
 import { authorizeAccessToken, authorizeAdminRole } from "../middlewares/auth";
-import { createColor, deleteColor, getColor, getColors, updateColor } from "../controllers/color.controller";
+import {
+    createColor,
+    deleteColor,
+    getColor,
+    getColors,
+    updateColor,
+} from "../controllers/color.controller";
 
 const adminSecret = process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret;
 
@@ -41,7 +47,12 @@ colorRouter.post(
  * @param {function} middleware - Express middleware
  * @param {function} handler - Express handler
  */
-colorRouter.put("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), updateColor);
+colorRouter.put(
+    "/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    updateColor
+);
 
 /**
  * Route for deleting a color.
@@ -54,7 +65,12 @@ colorRouter.put("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("s
  * @param {function} middleware - Express middleware
  * @param {function} handler - Express handler
  */
-colorRouter.delete("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), deleteColor);
+colorRouter.delete(
+    "/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    deleteColor
+);
 
 colorRouter.get(
     "/",

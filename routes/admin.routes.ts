@@ -36,7 +36,12 @@ const adminSecret = process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret;
  * @param {function} middleware - Middleware function
  * @param {function} controller - Controller function
  */
-adminRouter.post("/create-new", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), registerNewAdmin);
+adminRouter.post(
+    "/create-new",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    registerNewAdmin
+);
 
 /**
  * Route for logging in an admin.
@@ -131,7 +136,12 @@ adminRouter.put("/reset-password", resetPassword);
  * @param {function} middleware - Middleware function
  * @param {function} controller - Controller function
  */
-adminRouter.put("/user/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), updateAdminUser);
+adminRouter.put(
+    "/user/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    updateAdminUser
+);
 
 /**
  * Route for deleting an admin user.
@@ -142,7 +152,12 @@ adminRouter.put("/user/:id", authorizeAccessToken(adminSecret), authorizeAdminRo
  * @param {function} middleware - Middleware function
  * @param {function} controller - Controller function
  */
-adminRouter.delete("/user/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), deleteAdmin);
+adminRouter.delete(
+    "/user/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    deleteAdmin
+);
 
 /**
  * Route for getting all admin users.
@@ -153,7 +168,12 @@ adminRouter.delete("/user/:id", authorizeAccessToken(adminSecret), authorizeAdmi
  * @param {function} middleware - Middleware function
  * @param {function} controller - Controller function
  */
-adminRouter.get("/users", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), getAllAdmins);
+adminRouter.get(
+    "/users",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    getAllAdmins
+);
 
 /**
  * Route for getting a single admin user.
@@ -164,6 +184,11 @@ adminRouter.get("/users", authorizeAccessToken(adminSecret), authorizeAdminRole(
  * @param {function} middleware - Middleware function
  * @param {function} controller - Controller function
  */
-adminRouter.get("/user/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), getAdmin);
+adminRouter.get(
+    "/user/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    getAdmin
+);
 
 export default adminRouter;

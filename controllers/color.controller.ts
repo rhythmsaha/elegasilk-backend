@@ -164,7 +164,12 @@ export const getColors = asyncHandler(async (req: Request, res: Response, next: 
 
     // Define query objects
     let filters = {} as FilterQuery<IColor>;
-    let sortBy: string | { [key: string]: SortOrder | { $meta: any } } | [string, SortOrder][] | null | undefined;
+    let sortBy:
+        | string
+        | { [key: string]: SortOrder | { $meta: any } }
+        | [string, SortOrder][]
+        | null
+        | undefined;
 
     // if search query exists
     if (search) {
