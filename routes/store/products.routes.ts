@@ -1,12 +1,11 @@
 import express from "express";
-import { Secret } from "jsonwebtoken";
-import { authorizeAccessToken } from "../../middlewares/auth";
-import { getProductFilters, getp } from "../../controllers/product.controller";
+import { getProductFilters } from "../../controllers/product.controller";
+import { getProductsForStoreFront } from "../../controllers/store/product.controller";
 
 const productRouter = express.Router();
 
 // StoreFront API
 productRouter.get("/filters", getProductFilters);
-productRouter.get("/testp", getp);
+productRouter.get("/", getProductsForStoreFront);
 
 export default productRouter;

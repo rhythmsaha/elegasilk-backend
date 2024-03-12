@@ -469,24 +469,3 @@ export const getProductFilters = expressAsyncHandler(async (req, res, next) => {
         res.status(500).json({ message: error.message });
     }
 });
-
-export const getp = expressAsyncHandler(async (req, res, next) => {
-    const query = {
-        subcategory: "657070813d9601c4f9cb5ebb",
-    };
-
-    const products = await Product.find({
-        "attributes.subcategory": {
-            $in: ["657378dc7c5a3cb5bae7156f"],
-        },
-    });
-
-    res.json(products.length);
-
-    try {
-    } catch (error: any) {
-        res.status(500).json({ message: error.message });
-    }
-});
-
-// const attributes = await ;
