@@ -116,6 +116,7 @@ export const getProductsForStoreFront = expressAsyncHandler(async (req, res, nex
     pipeline.push({
         $facet: {
             products: [
+                { $match: filters },
                 { $sort: sortCondition },
                 { $skip: startFrom },
                 { $limit: endAt },
