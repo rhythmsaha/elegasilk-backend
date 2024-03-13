@@ -110,7 +110,7 @@ export const getProductsForStoreFront = expressAsyncHandler(async (req, res, nex
 
     if (page && pageSize) {
         startFrom = (page - 1) * pageSize;
-        endAt = page * pageSize;
+        endAt = pageSize;
     }
 
     pipeline.push({
@@ -147,6 +147,7 @@ export const getProductsForStoreFront = expressAsyncHandler(async (req, res, nex
     const total = products[0].totalCount[0]?.total || 0;
     const _products = products[0].products;
     const maxPage = Math.ceil(total / pageSize);
+
     let currentPage = page;
 
     if (currentPage > maxPage) {
