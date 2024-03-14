@@ -21,6 +21,7 @@ import productRouter from "./routes/admin/product.routes";
 import StoreCustomerRoutes from "./routes/store/customer.routes";
 import StoreProductRoutes from "./routes/store/products.routes";
 import StoreCollectionRoutes from "./routes/store/collection.routes";
+import AdminRoutes from "./routes/admin";
 
 // Initialize App
 export const app = express();
@@ -51,6 +52,7 @@ app.use("/api/subcategories", subCategoryRouter);
 app.use("/api/collections", collectionRouter);
 app.use("/api/colors", colorRouter);
 app.use("/api/products", productRouter);
+app.use("/api/admin", AdminRoutes);
 
 // StoreFrontAPI
 app.use("/api/store/user", StoreCustomerRoutes);
