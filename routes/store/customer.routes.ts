@@ -9,18 +9,18 @@ import {
     verifyCustomerAccount,
 } from "../../controllers/store/customer.controller";
 
-const customerRouter = express.Router();
+const CustomerRouter = express.Router();
 
 const CUSTOMER_JWT_SECRET = process.env.CUSTOMER_JWT_SECRET as Secret;
 
-customerRouter.post("/register", createCustomer);
-customerRouter.get("/verifyaccount", verifyCustomerAccount);
-customerRouter.post("/resendverificationlink", resendVerificationLink);
-customerRouter.post("/login", loginCustomer);
-customerRouter.get(
+CustomerRouter.post("/register", createCustomer);
+CustomerRouter.get("/verifyaccount", verifyCustomerAccount);
+CustomerRouter.post("/resendverificationlink", resendVerificationLink);
+CustomerRouter.post("/login", loginCustomer);
+CustomerRouter.get(
     "/refresh-session",
     authorizeAccessToken(CUSTOMER_JWT_SECRET, true),
     refreshCustomerSession
 );
 
-export default customerRouter;
+export default CustomerRouter;

@@ -6,7 +6,7 @@
 import express from "express";
 import { getCollection } from "../../controllers/admin/collection.controller";
 
-const collectionRouter = express.Router();
+const CollectionRouter = express.Router();
 
 /**
  * Route for getting a collection by ID.
@@ -20,6 +20,6 @@ const collectionRouter = express.Router();
  * @param {function} handler - Express handler
  */
 
-collectionRouter.get("/:id", getCollection);
+CollectionRouter.get("/:id", getCollection);
 
-export default collectionRouter;
+export default CollectionRouter;
