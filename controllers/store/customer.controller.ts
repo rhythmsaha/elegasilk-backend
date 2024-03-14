@@ -8,6 +8,12 @@ import CustomerSession from "../../utils/customer/CustomerSession";
 import generateOTP from "../../utils/generateOtp";
 import VerificationCode from "../../models/verificationcode.model";
 
+const checkRequestPermission = (id: string, req: Request, res: Response, next: NextFunction) => {
+    if (id !== req.customer?._id) {
+        return next(new ErrorHandler("Unauthorized", 403));
+    }
+};
+
 /**
  * Creates a new customer.
  *
@@ -264,6 +270,8 @@ export const refreshCustomerSession = asyncHandler(
  * @throws {ErrorHandler} If the required fields are not provided or if the customer is not found.
  */
 export const updateCustomerProfile = asyncHandler(async (req, res, next) => {
+    checkRequestPermission(req.params.id, req, res, next);
+
     const { firstName, lastName } = req.body as ICustomer;
 
     if (!firstName || !lastName) {
@@ -299,6 +307,7 @@ export const updateCustomerProfile = asyncHandler(async (req, res, next) => {
  * @throws {ErrorHandler} If the required fields are not provided, customer is not found, or the current password is invalid.
  */
 export const updateCustomerPassword = asyncHandler(async (req, res, next) => {
+    checkRequestPermission(req.params.id, req, res, next);
     const { currentPassword, newPassword } = req.body as {
         currentPassword: string;
         newPassword: string;
@@ -338,6 +347,7 @@ export const updateCustomerPassword = asyncHandler(async (req, res, next) => {
  * @returns {Promise<void>} - A promise that resolves when the account is deleted.
  */
 export const deleteCustomerAccount = asyncHandler(async (req, res, next) => {
+    checkRequestPermission(req.params.id, req, res, next);
     const customer = await Customer.findById(req.customer?._id);
 
     if (!customer) {
@@ -361,6 +371,7 @@ export const deleteCustomerAccount = asyncHandler(async (req, res, next) => {
  * @throws {ErrorHandler} - If the customer is not found.
  */
 export const getCustomerProfile = asyncHandler(async (req, res, next) => {
+    checkRequestPermission(req.params.id, req, res, next);
     const customer = await Customer.findById(req.customer?._id);
 
     if (!customer) {
@@ -384,6 +395,7 @@ export const getCustomerProfile = asyncHandler(async (req, res, next) => {
  * @returns A JSON response indicating the success of the operation, the updated email, and the verification ID.
  */
 export const updateCustomerEmail = asyncHandler(async (req, res, next) => {
+    checkRequestPermission(req.params.id, req, res, next);
     const { email } = req.body as ICustomer;
 
     if (!validator.isEmail(email)) {
@@ -422,6 +434,7 @@ export const updateCustomerEmail = asyncHandler(async (req, res, next) => {
  * @param next - The next function to call in the middleware chain.
  */
 export const verifyCustomerEmail = asyncHandler(async (req, res, next) => {
+    checkRequestPermission(req.params.id, req, res, next);
     const { verificationId, otp, email } = req.body as {
         verificationId: string;
         otp: string;
