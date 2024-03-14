@@ -254,6 +254,15 @@ export const refreshCustomerSession = asyncHandler(
     }
 );
 
+/**
+ * Updates the profile of a customer.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response indicating the success of the profile update.
+ * @throws {ErrorHandler} If the required fields are not provided or if the customer is not found.
+ */
 export const updateCustomerProfile = asyncHandler(async (req, res, next) => {
     const { firstName, lastName } = req.body as ICustomer;
 
@@ -280,6 +289,15 @@ export const updateCustomerProfile = asyncHandler(async (req, res, next) => {
     });
 });
 
+/**
+ * Updates the password of a customer.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response indicating the success of the password update.
+ * @throws {ErrorHandler} If the required fields are not provided, customer is not found, or the current password is invalid.
+ */
 export const updateCustomerPassword = asyncHandler(async (req, res, next) => {
     const { currentPassword, newPassword } = req.body as {
         currentPassword: string;
@@ -311,6 +329,14 @@ export const updateCustomerPassword = asyncHandler(async (req, res, next) => {
     });
 });
 
+/**
+ * Deletes a customer account.
+ *
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @param {NextFunction} next - The next function.
+ * @returns {Promise<void>} - A promise that resolves when the account is deleted.
+ */
 export const deleteCustomerAccount = asyncHandler(async (req, res, next) => {
     const customer = await Customer.findById(req.customer?._id);
 
@@ -326,6 +352,14 @@ export const deleteCustomerAccount = asyncHandler(async (req, res, next) => {
     });
 });
 
+/**
+ * Retrieves the profile of a customer.
+ * @param {Request} req - The request object.
+ * @param {Response} res - The response object.
+ * @param {NextFunction} next - The next function.
+ * @returns {Promise<void>} - A promise that resolves with the customer profile.
+ * @throws {ErrorHandler} - If the customer is not found.
+ */
 export const getCustomerProfile = asyncHandler(async (req, res, next) => {
     const customer = await Customer.findById(req.customer?._id);
 
@@ -341,6 +375,14 @@ export const getCustomerProfile = asyncHandler(async (req, res, next) => {
     });
 });
 
+/**
+ * Updates the email of a customer.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response indicating the success of the operation, the updated email, and the verification ID.
+ */
 export const updateCustomerEmail = asyncHandler(async (req, res, next) => {
     const { email } = req.body as ICustomer;
 
@@ -373,6 +415,12 @@ export const updateCustomerEmail = asyncHandler(async (req, res, next) => {
     });
 });
 
+/**
+ * Verifies the customer's email using the provided verification code and OTP.
+ * @param req - The request object containing the verificationId, otp, and email.
+ * @param res - The response object used to send the verification result.
+ * @param next - The next function to call in the middleware chain.
+ */
 export const verifyCustomerEmail = asyncHandler(async (req, res, next) => {
     const { verificationId, otp, email } = req.body as {
         verificationId: string;
