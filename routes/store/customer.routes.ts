@@ -7,10 +7,12 @@ import { authorizeAccessToken } from "../../middlewares/auth";
 import {
     createCustomer,
     deleteCustomerAccount,
+    forgetPassword,
     getCustomerProfile,
     loginCustomer,
     refreshCustomerSession,
     resendVerificationLink,
+    resetPassword,
     updateCustomerEmail,
     updateCustomerPassword,
     updateCustomerProfile,
@@ -105,5 +107,19 @@ CustomerRouter.put("/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET), updateCust
  * @middleware authorizeAccessToken
  */
 CustomerRouter.delete("/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET), deleteCustomerAccount);
+
+/**
+ * Route for forgetting a customer's password.
+ * @name POST /forgetpassword
+ * @function
+ */
+CustomerRouter.post("/forgetpassword", forgetPassword);
+
+/**
+ * Route for resetting a customer's password.
+ * @name POST /resetpassword
+ * @function
+ */
+CustomerRouter.post("/resetpassword", resetPassword);
 
 export default CustomerRouter;
