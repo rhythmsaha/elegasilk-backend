@@ -460,6 +460,13 @@ export const verifyCustomerEmail = asyncHandler(async (req, res, next) => {
     });
 });
 
+/**
+ * Handles the forget password functionality.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response indicating the success and a message to check the inbox for password reset.
+ */
 export const forgetPassword = asyncHandler(async (req, res, next) => {
     const { email } = req.body as ICustomer;
 
@@ -493,4 +500,44 @@ export const forgetPassword = asyncHandler(async (req, res, next) => {
     });
 });
 
-export const resetPassword = asyncHandler(async (req, res, next) => {});
+/**
+ * Reset the password for a customer.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response indicating the success of the password reset.
+ */
+export const resetPassword = asyncHandler(async (req, res, next) => {
+    const { customerId, id, token, password } = req.body as {
+        customerId: string;
+        id: string;
+        token: string;
+        password: string;
+    };
+
+    if (!customerId || !id || !token || !password) {
+        return next(new ErrorHandler("Invalid request", 400));
+    }
+
+    const verificationCode = await VerificationCode.findById(id);
+
+    if (!verificationCode) return next(new ErrorHandler("Invalid Code", 400));
+
+    const isMatching = verificationCode.verifyCode(token);
+
+    if (!isMatching) return next(new ErrorHandler("Invalid Code", 400));
+
+    const customer = await Customer.findById(customerId);
+
+    if (!customer) {
+        return next(new ErrorHandler("Account not found", 400));
+    }
+
+    customer.hashed_password = password;
+    await customer.save();
+
+    res.status(200).json({
+        success: true,
+        message: "Password reset successfully",
+    });
+});
