@@ -1,13 +1,13 @@
 import asyncHandler from "express-async-handler";
-import Admin, { IAdmin } from "../models/Admin.model";
-import ErrorHandler from "../utils/ErrorHandler";
+import Admin, { IAdmin } from "../../models/Admin.model";
+import ErrorHandler from "../../utils/ErrorHandler";
 import { Request, Response, NextFunction } from "express";
 import validator from "validator";
-import { validateStrongPassword } from "../utils/validate";
-import { createAdminPasswordResetCode } from "../services/admin/createTokens";
-import { verifyResetPasswordService } from "../services/admin/validateTokens";
-import AdminSession from "../utils/admin/AdminSession";
-import { ICreateAdminInput, ILoginAdminInput } from "../types/typings";
+import { validateStrongPassword } from "../../utils/validate";
+import { createAdminPasswordResetCode } from "../../services/admin/createTokens";
+import { verifyResetPasswordService } from "../../services/admin/validateTokens";
+import AdminSession from "../../utils/admin/AdminSession";
+import { ICreateAdminInput, ILoginAdminInput } from "../../types/typings";
 
 /**
  * Registers a new admin user.

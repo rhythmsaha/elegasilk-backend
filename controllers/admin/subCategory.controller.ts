@@ -1,10 +1,10 @@
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
-import ErrorHandler from "../utils/ErrorHandler";
+import ErrorHandler from "../../utils/ErrorHandler";
 import validator from "validator";
-import SubCategory, { ISubCategory } from "../models/subCategory.model";
+import SubCategory, { ISubCategory } from "../../models/subCategory.model";
 import { FilterQuery, SortOrder } from "mongoose";
-import Category from "../models/category.model";
+import Category from "../../models/category.model";
 
 /**
  * Creates a new subcategory.

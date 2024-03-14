@@ -1,5 +1,5 @@
 import express from "express";
-import { authorizeAccessToken, authorizeAdminRole } from "../middlewares/auth";
+import { authorizeAccessToken, authorizeAdminRole } from "../../middlewares/auth";
 import { Secret } from "jsonwebtoken";
 import {
     createSubCategory,
@@ -7,7 +7,7 @@ import {
     getAllSubCategories,
     getSubCategory,
     updateSubCategory,
-} from "../controllers/subCategory.controller";
+} from "../../controllers/admin/subCategory.controller";
 
 const adminSecret = process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret;
 
@@ -17,7 +17,7 @@ const subCategoryRouter = express.Router();
 subCategoryRouter.post(
     "/create-new",
     authorizeAccessToken(adminSecret),
-    authorizeAdminRole("superadmin", "admin", "moderator"),
+    authorizeAdminRole("superadmin", "admin"),
     createSubCategory
 );
 
@@ -38,10 +38,20 @@ subCategoryRouter.delete(
 );
 
 // Get all subcategories route (GET): /api/subcategory/
-subCategoryRouter.get("/", authorizeAccessToken(adminSecret), getAllSubCategories);
+subCategoryRouter.get(
+    "/",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin", "moderator"),
+    getAllSubCategories
+);
 
 // Get a subcategory route (GET): /api/subcategory/:id
-subCategoryRouter.get("/:id", authorizeAccessToken(adminSecret), getSubCategory);
+subCategoryRouter.get(
+    "/:id",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin", "moderator"),
+    getSubCategory
+);
 
 // Export the router
 export default subCategoryRouter;

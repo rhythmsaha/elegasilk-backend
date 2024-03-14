@@ -5,14 +5,14 @@
 
 import express from "express";
 import { Secret } from "jsonwebtoken";
-import { authorizeAccessToken, authorizeAdminRole } from "../middlewares/auth";
+import { authorizeAccessToken, authorizeAdminRole } from "../../middlewares/auth";
 import {
     createColor,
     deleteColor,
     getColor,
     getColors,
     updateColor,
-} from "../controllers/color.controller";
+} from "../../controllers/admin/color.controller";
 
 const adminSecret = process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret;
 

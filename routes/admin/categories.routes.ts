@@ -4,14 +4,14 @@
  */
 
 import express from "express";
-import { authorizeAccessToken, authorizeAdminRole } from "../middlewares/auth";
+import { authorizeAccessToken, authorizeAdminRole } from "../../middlewares/auth";
 import {
     createCategory,
     deleteCategory,
     getAllCategories,
     getCategory,
     updateCategory,
-} from "../controllers/category.controller";
+} from "../../controllers/admin/category.controller";
 import { Secret } from "jsonwebtoken";
 
 const adminSecret = process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret;

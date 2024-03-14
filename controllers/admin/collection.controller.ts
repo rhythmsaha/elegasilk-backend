@@ -1,10 +1,10 @@
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
 import validator from "validator";
-import ErrorHandler from "../utils/ErrorHandler";
-import Collection, { ICollection } from "../models/collection.model";
+import ErrorHandler from "../../utils/ErrorHandler";
+import Collection, { ICollection } from "../../models/collection.model";
 import mongoose, { FilterQuery, PipelineStage, SortOrder } from "mongoose";
-import { ISortOrder } from "../types/typings";
+import { ISortOrder } from "../../types/typings";
 
 /**
  * Create a new collection

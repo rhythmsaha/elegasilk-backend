@@ -4,7 +4,7 @@
  */
 
 import express from "express";
-import { getCollection } from "../../controllers/collection.controller";
+import { getCollection } from "../../controllers/admin/collection.controller";
 
 const collectionRouter = express.Router();
 

@@ -1,9 +1,9 @@
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
 import validator from "validator";
-import ErrorHandler from "../utils/ErrorHandler";
+import ErrorHandler from "../../utils/ErrorHandler";
 import { FilterQuery, SortOrder } from "mongoose";
-import Color, { IColor } from "../models/color.model";
+import Color, { IColor } from "../../models/color.model";
 
 /**
  * Create a new color.

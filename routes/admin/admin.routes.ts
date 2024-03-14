@@ -4,7 +4,7 @@
  */
 
 import express from "express";
-import { authorizeAccessToken, authorizeAdminRole } from "../middlewares/auth";
+import { authorizeAccessToken, authorizeAdminRole } from "../../middlewares/auth";
 import {
     deleteAdmin,
     deleteSelfProfile,
@@ -19,7 +19,7 @@ import {
     updateSelfPassword,
     updateSelfProfile,
     verifyResetPasswordCode,
-} from "../controllers/admin.controller";
+} from "../../controllers/admin/admin.controller";
 import { Secret } from "jsonwebtoken";
 require("dotenv").config();
 

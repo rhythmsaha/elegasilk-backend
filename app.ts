@@ -7,12 +7,15 @@
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import errorMiddleware from "./middlewares/errorMiddleware";
-import adminRouter from "./routes/admin.routes";
-import categoryRouter from "./routes/categories.routes";
-import subCategoryRouter from "./routes/subcategories.routes";
-import collectionRouter from "./routes/collections.routes";
-import colorRouter from "./routes/color.routes";
-import productRouter from "./routes/product.routes";
+
+// Import AdminAPI Routes
+import adminRouter from "./routes/admin/admin.routes";
+import categoryRouter from "./routes/admin/categories.routes";
+import collectionRouter from "./routes/admin/collections.routes";
+import colorRouter from "./routes/admin/color.routes";
+import subCategoryRouter from "./routes/admin/subcategories.routes";
+
+import productRouter from "./routes/admin/product.routes";
 
 //Import StoreFrontAPI Routes
 import StoreCustomerRoutes from "./routes/store/customer.routes";

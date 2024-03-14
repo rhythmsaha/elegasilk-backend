@@ -1,10 +1,10 @@
 import expressAsyncHandler from "express-async-handler";
-import Product, { IProduct } from "../models/Product.model";
-import ErrorHandler from "../utils/ErrorHandler";
-import { ISortOrder } from "../types/typings";
+import Product, { IProduct } from "../../models/Product.model";
+import ErrorHandler from "../../utils/ErrorHandler";
+import { ISortOrder } from "../../types/typings";
 import mongoose, { FilterQuery, Mongoose, PipelineStage } from "mongoose";
-import Color from "../models/color.model";
-import splitQuery from "../utils/splitQuery";
+import Color from "../../models/color.model";
+import splitQuery from "../../utils/splitQuery";
 
 const checkBoolean = (value: any) => {
     return typeof value === "boolean";
