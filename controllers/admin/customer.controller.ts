@@ -5,7 +5,7 @@ import expressAsyncHandler from "express-async-handler";
 
 // Private APIS - For Admins Only
 export const createCustomerByAdmin = expressAsyncHandler(async (req, res, next) => {
-    const { firstName, lastName, email, password, phone } = req.body as ICustomer & {
+    const { firstName, lastName, email, password } = req.body as ICustomer & {
         password: string;
     };
 
@@ -22,7 +22,6 @@ export const createCustomerByAdmin = expressAsyncHandler(async (req, res, next) 
         lastName,
         email,
         hashed_password: password,
-        phone,
         verified: true,
     });
 
@@ -36,7 +35,32 @@ export const createCustomerByAdmin = expressAsyncHandler(async (req, res, next) 
     });
 });
 
-export const updateCustomerProfileByAdmin = expressAsyncHandler(async (req, res, next) => {});
+export const updateCustomerProfileByAdmin = expressAsyncHandler(async (req, res, next) => {
+    const { id } = req.params;
+    const { firstName, lastName, email } = req.body as ICustomer;
+
+    const customer = await Customer.findById(id);
+
+    if (!customer) {
+        return next(new ErrorHandler("Customer not found", 404));
+    }
+
+    customer.firstName = firstName;
+    customer.lastName = lastName;
+    customer.email = email;
+
+    const savedCustomer = await customer.save();
+
+    if (!savedCustomer) {
+        return next(new ErrorHandler("Customer update failed", 400));
+    }
+
+    res.status(200).json({
+        success: true,
+        message: "Customer updated successfully",
+        customer: savedCustomer,
+    });
+});
 
 export const deleteCustomerAccountByAdmin = expressAsyncHandler(async (req, res, next) => {});
 
