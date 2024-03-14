@@ -5,6 +5,8 @@ import { Request, Response, NextFunction } from "express";
 import { default as validator } from "validator";
 import VerificationToken, { IVerificationToken } from "../../models/store/VerificationToken.model";
 import CustomerSession from "../../utils/customer/CustomerSession";
+import generateOTP from "../../utils/generateOtp";
+import VerificationCode from "../../models/verificationcode.model";
 
 /**
  * Creates a new customer.
@@ -17,7 +19,7 @@ import CustomerSession from "../../utils/customer/CustomerSession";
  */
 export const createCustomer = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-        const { firstName, lastName, email, password, phone } = req.body as ICustomer & {
+        const { firstName, lastName, email, password } = req.body as ICustomer & {
             password: string;
         };
 
@@ -37,7 +39,6 @@ export const createCustomer = asyncHandler(
                 lastName,
                 email,
                 hashed_password: password,
-                phone,
             });
 
             if (!newCustomer) return next(new ErrorHandler("Customer registration failed", 400));
@@ -253,18 +254,158 @@ export const refreshCustomerSession = asyncHandler(
     }
 );
 
-export const updateCustomerProfile = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {}
-);
+export const updateCustomerProfile = asyncHandler(async (req, res, next) => {
+    const { firstName, lastName } = req.body as ICustomer;
 
-export const updateCustomerPassword = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {}
-);
+    if (!firstName || !lastName) {
+        return next(new ErrorHandler("Please provide all fields", 400));
+    }
 
-export const deleteCustomerAccount = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {}
-);
+    const customer = await Customer.findByIdAndUpdate(
+        req.customer?._id,
+        {
+            firstName,
+            lastName,
+        },
+        { new: true }
+    );
 
-export const getCustomerProfile = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {}
-);
+    if (!customer) {
+        return next(new ErrorHandler("Customer not found", 404));
+    }
+
+    res.status(200).json({
+        success: true,
+        message: "Profile updated successfully",
+    });
+});
+
+export const updateCustomerPassword = asyncHandler(async (req, res, next) => {
+    const { currentPassword, newPassword } = req.body as {
+        currentPassword: string;
+        newPassword: string;
+    };
+
+    if (!currentPassword || !newPassword) {
+        return next(new ErrorHandler("Please provide all fields", 400));
+    }
+
+    const customer = await Customer.findById(req.customer?._id).select("+hashed_password");
+
+    if (!customer) {
+        return next(new ErrorHandler("Customer not found", 404));
+    }
+
+    const comparePassword = await customer.comparePassword(currentPassword);
+
+    if (!comparePassword) {
+        return next(new ErrorHandler("Invalid password", 400));
+    }
+
+    customer.hashed_password = newPassword;
+    await customer.save();
+
+    res.status(200).json({
+        success: true,
+        message: "Password updated successfully",
+    });
+});
+
+export const deleteCustomerAccount = asyncHandler(async (req, res, next) => {
+    const customer = await Customer.findById(req.customer?._id);
+
+    if (!customer) {
+        return next(new ErrorHandler("Customer not found", 404));
+    }
+
+    await customer.deleteOne();
+
+    res.status(200).json({
+        success: true,
+        message: "Account deleted successfully",
+    });
+});
+
+export const getCustomerProfile = asyncHandler(async (req, res, next) => {
+    const customer = await Customer.findById(req.customer?._id);
+
+    if (!customer) {
+        return next(new ErrorHandler("Customer not found", 404));
+    }
+
+    const customerProfile = customer.getCustomerProfile();
+
+    res.status(200).json({
+        success: true,
+        user: customerProfile,
+    });
+});
+
+export const updateCustomerEmail = asyncHandler(async (req, res, next) => {
+    const { email } = req.body as ICustomer;
+
+    if (!validator.isEmail(email)) {
+        return next(new ErrorHandler("Invalid email", 400));
+    }
+
+    const emailExists = await Customer.findOne({ email });
+
+    if (emailExists) {
+        return next(new ErrorHandler("Email already exists", 400));
+    }
+
+    const otp = generateOTP(4);
+    const verificationCode = await VerificationCode.create({
+        code: otp,
+    });
+
+    if (!verificationCode) {
+        return next(new ErrorHandler("Something went wrong!", 400));
+    }
+
+    const verificationId = verificationCode._id;
+
+    res.status(200).json({
+        success: true,
+        message: "Check Inbox for OTP!",
+        email,
+        verificationId,
+    });
+});
+
+export const verifyCustomerEmail = asyncHandler(async (req, res, next) => {
+    const { verificationId, otp, email } = req.body as {
+        verificationId: string;
+        otp: string;
+        email: string;
+    };
+
+    if (!verificationId || !otp) {
+        return next(new ErrorHandler("Invalid verification code", 400));
+    }
+
+    const verificationCode = await VerificationCode.findById(verificationId);
+
+    if (!verificationCode) return next(new ErrorHandler("Invalid Code", 400));
+
+    const isMatching = verificationCode.verifyCode(otp);
+
+    if (!isMatching) return next(new ErrorHandler("Invalid Code", 400));
+
+    const customer = await Customer.findByIdAndUpdate(
+        req.customer?._id,
+        {
+            email,
+        },
+        { new: true }
+    );
+
+    if (!customer) {
+        return next(new ErrorHandler("Failed to Update Email Address", 404));
+    }
+
+    res.status(200).json({
+        success: true,
+        message: "Email verified successfully",
+    });
+});

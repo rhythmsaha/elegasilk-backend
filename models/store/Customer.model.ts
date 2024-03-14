@@ -7,7 +7,6 @@ export interface ICustomer extends Document {
     firstName: string;
     lastName: string;
     email: string;
-    phone: string;
     hashed_password: string;
     status: boolean;
     verified: boolean;
@@ -22,6 +21,7 @@ export interface ICustomer extends Document {
     // Methods
     comparePassword: (enteredPassword: string) => Promise<boolean>;
     signAccessToken: () => string;
+    getCustomerProfile: () => object;
 }
 
 const CustomerSchema = new Schema<ICustomer>(
@@ -82,20 +82,26 @@ const CustomerSchema = new Schema<ICustomer>(
 CustomerSchema.pre<ICustomer>("save", async function (next) {
     if (!this.isModified("hashed_password")) return next();
     const salt = process.env.CUSTOMER_PWD_SALT;
-    this.hashed_password = crypto.pbkdf2Sync(this.hashed_password, salt!, 1000, 64, "sha512").toString("hex");
+    this.hashed_password = crypto
+        .pbkdf2Sync(this.hashed_password, salt!, 1000, 64, "sha512")
+        .toString("hex");
     next();
 });
 
 // Compare password
 CustomerSchema.methods.comparePassword = async function (enteredPassword: string) {
     const salt = process.env.CUSTOMER_PWD_SALT;
-    const hashed_password = await crypto.pbkdf2Sync(enteredPassword, salt!, 1000, 64, "sha512").toString("hex");
+    const hashed_password = await crypto
+        .pbkdf2Sync(enteredPassword, salt!, 1000, 64, "sha512")
+        .toString("hex");
     return this.hashed_password === hashed_password;
 };
 
 // Sign Access Token
 CustomerSchema.methods.signAccessToken = function () {
-    return jwt.sign({ id: this._id }, process.env.CUSTOMER_JWT_SECRET as Secret, { expiresIn: process.env.CUSTOMER_JWT_EXPIRESIN });
+    return jwt.sign({ id: this._id }, process.env.CUSTOMER_JWT_SECRET as Secret, {
+        expiresIn: process.env.CUSTOMER_JWT_EXPIRESIN,
+    });
 };
 
 // Get Customer Profile
