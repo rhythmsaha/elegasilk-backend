@@ -24,10 +24,7 @@ export const getProductsForStoreFront = expressAsyncHandler(async (req, res, nex
     const page = parseInt(req.query.page as string, 10) || 1; // Get page query
     const pageSize = parseInt(req.query.pageSize as string, 10) || 30; // Get page size query
 
-    if (
-        sortQuery &&
-        !["newest-first", "price-high-to-low", "price-low-to-high", "relevant"].includes(sortQuery)
-    ) {
+    if (sortQuery && !["newest-first", "price-high-to-low", "price-low-to-high", "relevant"].includes(sortQuery)) {
         return next(new ErrorHandler("Invalid sort by property", 400));
     }
 
@@ -162,4 +159,44 @@ export const getProductsForStoreFront = expressAsyncHandler(async (req, res, nex
         currentPage,
         maxPage,
     });
+});
+
+export const getProductsPaths = expressAsyncHandler(async (req, res, next) => {
+    const products = await Product.find({ published: true });
+
+    if (!products) {
+        return next(new ErrorHandler("Failed to fetch products", 500));
+    }
+
+    const paths = products.map((product) => {
+        return {
+            params: {
+                slug: product.slug,
+            },
+        };
+    });
+
+    res.status(200).json({
+        success: true,
+        paths: paths,
+    });
+});
+
+export const getProduct = expressAsyncHandler(async (req, res, next) => {
+    const slug = req.params.slug;
+
+    try {
+        const product = await Product.findOne({ slug }).populate("colors").populate("collections");
+
+        if (!product) {
+            return next(new ErrorHandler("Product not found", 404));
+        }
+
+        res.status(200).json({
+            success: true,
+            data: product,
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
 });
