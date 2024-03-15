@@ -11,8 +11,6 @@ import crypto from "crypto";
 import { sendMail } from "../../lib/mail";
 
 const checkRequestPermission = (id: string, req: Request, res: Response, next: NextFunction) => {
-    console.log(id, req.customer?._id);
-
     if (id !== req.customer?._id) {
         return next(new ErrorHandler("Unauthorized", 403));
     }
