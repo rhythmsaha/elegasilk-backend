@@ -8,8 +8,11 @@ import CustomerSession from "../../utils/customer/CustomerSession";
 import generateOTP from "../../utils/generateOtp";
 import VerificationCode from "../../models/verificationcode.model";
 import crypto from "crypto";
+import { sendMail } from "../../lib/mail";
 
 const checkRequestPermission = (id: string, req: Request, res: Response, next: NextFunction) => {
+    console.log(id, req.customer?._id);
+
     if (id !== req.customer?._id) {
         return next(new ErrorHandler("Unauthorized", 403));
     }
@@ -259,30 +262,52 @@ export const refreshCustomerSession = asyncHandler(async (req: Request, res: Res
  * @throws {ErrorHandler} If the required fields are not provided or if the customer is not found.
  */
 export const updateCustomerProfile = asyncHandler(async (req, res, next) => {
-    checkRequestPermission(req.params.id, req, res, next);
+    // checkRequestPermission(req.params.id, req, res, next);
 
-    const { firstName, lastName } = req.body as ICustomer;
+    const { firstName, lastName, password, newPassword } = req.body as ICustomer & {
+        password: string;
+        newPassword: string;
+    };
 
     if (!firstName || !lastName) {
         return next(new ErrorHandler("Please provide all fields", 400));
     }
 
-    const customer = await Customer.findByIdAndUpdate(
-        req.customer?._id,
-        {
-            firstName,
-            lastName,
-        },
-        { new: true }
-    );
+    const customer = await Customer.findById(req.customer?._id).select("+hashed_password");
 
     if (!customer) {
         return next(new ErrorHandler("Customer not found", 404));
     }
 
+    if (password) {
+        const comparePassword = await customer.comparePassword(password);
+
+        if (!comparePassword) {
+            return next(new ErrorHandler("Invalid password", 400));
+        }
+
+        if (!newPassword) {
+            return next(new ErrorHandler("Please provide new password", 400));
+        }
+
+        customer.hashed_password = newPassword;
+    }
+
+    customer.firstName = firstName;
+    customer.lastName = lastName;
+
+    const saveCustomer = await customer.save();
+
+    if (!saveCustomer) {
+        return next(new ErrorHandler("Failed to update profile", 400));
+    }
+
+    const user = saveCustomer.getCustomerProfile();
+
     res.status(200).json({
         success: true,
         message: "Profile updated successfully",
+        user,
     });
 });
 
@@ -385,6 +410,7 @@ export const getCustomerProfile = asyncHandler(async (req, res, next) => {
  */
 export const updateCustomerEmail = asyncHandler(async (req, res, next) => {
     checkRequestPermission(req.params.id, req, res, next);
+
     const { email } = req.body as ICustomer;
 
     if (!validator.isEmail(email)) {
@@ -406,6 +432,15 @@ export const updateCustomerEmail = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Something went wrong!", 400));
     }
 
+    const mailOptions = {
+        from: "Elegasilk <elegasilk@gmail.com>",
+        to: email,
+        subject: "Verification Code",
+        text: "Your verification code is " + otp + ". Please use this code to verify your email address.",
+    };
+
+    sendMail(mailOptions);
+
     const verificationId = verificationCode._id;
 
     res.status(200).json({
@@ -424,6 +459,7 @@ export const updateCustomerEmail = asyncHandler(async (req, res, next) => {
  */
 export const verifyCustomerEmail = asyncHandler(async (req, res, next) => {
     checkRequestPermission(req.params.id, req, res, next);
+
     const { verificationId, otp, email } = req.body as {
         verificationId: string;
         otp: string;
@@ -454,9 +490,12 @@ export const verifyCustomerEmail = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Failed to Update Email Address", 404));
     }
 
+    const user = customer.getCustomerProfile();
+
     res.status(200).json({
         success: true,
         message: "Email verified successfully",
+        user,
     });
 });
 

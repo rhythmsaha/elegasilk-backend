@@ -66,7 +66,7 @@ CustomerRouter.get("/refresh-session", authorizeAccessToken(CUSTOMER_JWT_SECRET,
  * @function
  * @middleware authorizeAccessToken
  */
-CustomerRouter.post("/email/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET), updateCustomerEmail);
+CustomerRouter.post("/email/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET, true), updateCustomerEmail);
 
 /**
  * Route for verifying a customer's email.
@@ -74,7 +74,7 @@ CustomerRouter.post("/email/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET), upd
  * @function
  * @middleware authorizeAccessToken
  */
-CustomerRouter.put("/email/verify/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET), verifyCustomerEmail);
+CustomerRouter.put("/email/verify/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET, true), verifyCustomerEmail);
 
 /**
  * Route for updating a customer's password.
@@ -82,7 +82,7 @@ CustomerRouter.put("/email/verify/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET
  * @function
  * @middleware authorizeAccessToken
  */
-CustomerRouter.put("/password/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET), updateCustomerPassword);
+CustomerRouter.put("/password/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET, true), updateCustomerPassword);
 
 /**
  * Route for retrieving a customer's profile.
@@ -90,7 +90,7 @@ CustomerRouter.put("/password/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET), u
  * @function
  * @middleware authorizeAccessToken
  */
-CustomerRouter.get("/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET), getCustomerProfile);
+CustomerRouter.get("/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET, true), getCustomerProfile);
 
 /**
  * Route for updating a customer's profile.
@@ -98,7 +98,7 @@ CustomerRouter.get("/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET), getCustome
  * @function
  * @middleware authorizeAccessToken
  */
-CustomerRouter.put("/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET), updateCustomerProfile);
+CustomerRouter.put("/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET, true), updateCustomerProfile);
 
 /**
  * Route for deleting a customer's account.
@@ -106,7 +106,7 @@ CustomerRouter.put("/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET), updateCust
  * @function
  * @middleware authorizeAccessToken
  */
-CustomerRouter.delete("/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET), deleteCustomerAccount);
+CustomerRouter.delete("/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET, true), deleteCustomerAccount);
 
 /**
  * Route for forgetting a customer's password.

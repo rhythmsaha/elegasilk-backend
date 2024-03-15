@@ -9,7 +9,7 @@ const generateOTP: (length: number) => string = (length: number) => {
         otp += digits[Math.floor(Math.random() * 10)];
     }
 
-    return "1234";
+    return otp;
 };
 
 export default generateOTP;

@@ -46,6 +46,11 @@ app.get("/api/test", async (req: Request, res: Response, next: NextFunction) => 
     });
 });
 
+import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+import { sendMail } from "./lib/mail";
+dotenv.config();
+
 // Routes
 app.use("/api/admin", adminRouter);
 app.use("/api/categories", categoryRouter);
