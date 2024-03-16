@@ -163,3 +163,34 @@ export const removeItemFromWishlist = expressAsyncHandler(async (req: Request, r
         data: wishlist,
     });
 });
+
+export const checkProductInWishlist = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { productId } = req.params;
+    const userId = req.customer?._id;
+
+    if (!userId) {
+        return next(new ErrorHandler("Please login to check product in wishlist", 401));
+    }
+
+    if (!productId) {
+        return next(new ErrorHandler("Product not found", 404));
+    }
+
+    const wishlist = await Wishlist.findOne({ userId });
+
+    if (!wishlist) {
+        res.status(200).json({
+            success: true,
+            data: false,
+        });
+
+        return;
+    }
+
+    const isProductInWishlist = wishlist.products.map((product) => product.toString()).includes(productId);
+
+    res.status(200).json({
+        success: true,
+        data: isProductInWishlist,
+    });
+});
