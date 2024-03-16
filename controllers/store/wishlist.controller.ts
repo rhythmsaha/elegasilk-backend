@@ -90,7 +90,22 @@ export const getWishlist = expressAsyncHandler(async (req: Request, res: Respons
     });
 
     if (!wishlist) {
-        return next(new ErrorHandler("Wishlist not found", 404));
+        const newWishlist = await Wishlist.create({
+            userId,
+            products: [],
+            total: 0,
+        });
+
+        if (!newWishlist) {
+            return next(new ErrorHandler("Failed to retrieve wishlist", 500));
+        }
+
+        res.status(200).json({
+            success: true,
+            data: newWishlist,
+        });
+
+        return next();
     }
 
     res.status(200).json({
