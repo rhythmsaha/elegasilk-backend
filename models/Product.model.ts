@@ -18,7 +18,7 @@ export interface IProduct extends Document {
         _id: string;
         name: string;
     }[];
-    stock?: number;
+    stock: number;
 
     attributes: {
         _id: any;

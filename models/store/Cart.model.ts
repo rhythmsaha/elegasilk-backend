@@ -1,17 +1,16 @@
-import { Document, ObjectId, Schema } from "mongoose";
+import { Document, ObjectId, Schema, model } from "mongoose";
+import { IProduct } from "../Product.model";
 
 interface CartItem {
     productId: ObjectId;
-    price: number;
     quantity: number;
-    totalPrice: number;
 }
 
 export interface ICartSchema extends Document {
     userId: ObjectId;
     products: CartItem[];
-    totalPrice: number;
-    totalQuantity: number;
+    totalQuantity?: number;
+    totalPrice?: number;
 }
 
 const cartSchema = new Schema<ICartSchema>(
@@ -30,34 +29,19 @@ const cartSchema = new Schema<ICartSchema>(
                     ref: "Product",
                     required: true,
                 },
-                price: {
-                    type: Number,
-                    required: true,
-                },
+
                 quantity: {
-                    type: Number,
-                    required: true,
-                },
-                totalPrice: {
                     type: Number,
                     required: true,
                 },
             },
         ],
-
-        totalPrice: {
-            type: Number,
-            required: true,
-        },
-
-        totalQuantity: {
-            type: Number,
-            required: true,
-        },
     },
+
     {
         timestamps: true,
     }
 );
 
-export default cartSchema;
+const Cart = model<ICartSchema>("Cart", cartSchema);
+export default Cart;
