@@ -62,11 +62,6 @@ app.use("/api/products", productRouter);
 // AdminAPI - v1
 app.use("/api/v1/admin", AdminRoutes);
 
-// StoreFrontAPI
-app.use("/api/store/user", StoreCustomerRoutes);
-app.use("/api/store/products", StoreProductRoutes);
-app.use("/api/store/collections", StoreCollectionRoutes);
-
 // Storefront Api - v1
 app.use("/api/v1/store", StoreRouter);
 

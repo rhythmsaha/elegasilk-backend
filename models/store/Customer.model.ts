@@ -15,7 +15,6 @@ export interface ICustomer extends Document {
 
     cartId: ObjectId;
     wishlistId: ObjectId;
-    adresses: ObjectId[];
     orders: ObjectId[];
 
     // Methods
@@ -82,18 +81,14 @@ const CustomerSchema = new Schema<ICustomer>(
 CustomerSchema.pre<ICustomer>("save", async function (next) {
     if (!this.isModified("hashed_password")) return next();
     const salt = process.env.CUSTOMER_PWD_SALT;
-    this.hashed_password = crypto
-        .pbkdf2Sync(this.hashed_password, salt!, 1000, 64, "sha512")
-        .toString("hex");
+    this.hashed_password = crypto.pbkdf2Sync(this.hashed_password, salt!, 1000, 64, "sha512").toString("hex");
     next();
 });
 
 // Compare password
 CustomerSchema.methods.comparePassword = async function (enteredPassword: string) {
     const salt = process.env.CUSTOMER_PWD_SALT;
-    const hashed_password = await crypto
-        .pbkdf2Sync(enteredPassword, salt!, 1000, 64, "sha512")
-        .toString("hex");
+    const hashed_password = await crypto.pbkdf2Sync(enteredPassword, salt!, 1000, 64, "sha512").toString("hex");
     return this.hashed_password === hashed_password;
 };
 
