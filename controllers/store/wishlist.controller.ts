@@ -164,6 +164,15 @@ export const removeItemFromWishlist = expressAsyncHandler(async (req: Request, r
     });
 });
 
+/**
+ * Checks if a product is in the user's wishlist.
+ *
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response indicating whether the product is in the wishlist.
+ * @throws {ErrorHandler} If the user is not logged in or the product is not found.
+ */
 export const checkProductInWishlist = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { productId } = req.params;
     const userId = req.customer?._id;
@@ -192,5 +201,41 @@ export const checkProductInWishlist = expressAsyncHandler(async (req: Request, r
     res.status(200).json({
         success: true,
         data: isProductInWishlist,
+    });
+});
+
+/**
+ * Clears the user's wishlist.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns A JSON response indicating the success or failure of the operation.
+ */
+export const clearWishlist = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.customer?._id;
+
+    if (!userId) {
+        return next(new ErrorHandler("Please login to clear wishlist", 401));
+    }
+
+    const wishlist = await Wishlist.findOne({ userId });
+
+    if (!wishlist) {
+        return next(new ErrorHandler("Wishlist not found", 404));
+    }
+
+    wishlist.products = [];
+    wishlist.total = 0;
+
+    const savewishlist = await wishlist.save();
+
+    if (!savewishlist) {
+        return next(new ErrorHandler("Failed to clear wishlist", 500));
+    }
+
+    res.status(200).json({
+        success: true,
+        message: "Wishlist cleared",
+        data: wishlist,
     });
 });
