@@ -63,6 +63,7 @@ export const addItemToWishlist = expressAsyncHandler(async (req: Request, res: R
     if (!savewishlist) {
         return next(new ErrorHandler("Failed to add product to wishlist", 500));
     }
+
     res.status(201).json({
         success: true,
         message: "Product added to wishlist",
@@ -86,7 +87,7 @@ export const getWishlist = expressAsyncHandler(async (req: Request, res: Respons
 
     const wishlist = await Wishlist.findOne({ userId }).populate({
         path: "products",
-        select: "name price discount images",
+        select: "name MRP discount images slug",
     });
 
     if (!wishlist) {
@@ -110,7 +111,7 @@ export const getWishlist = expressAsyncHandler(async (req: Request, res: Respons
 
     res.status(200).json({
         success: true,
-        data: wishlist,
+        wishlist: wishlist,
     });
 });
 
