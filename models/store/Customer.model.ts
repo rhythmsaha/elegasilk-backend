@@ -14,7 +14,6 @@ export interface ICustomer extends Document {
     updatedAt?: Date;
 
     cartId: ObjectId;
-    wishlistId: ObjectId;
     orders: ObjectId[];
 
     // Methods

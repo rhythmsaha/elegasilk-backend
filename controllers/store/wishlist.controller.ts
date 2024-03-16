@@ -3,8 +3,13 @@ import { Request, Response, NextFunction } from "express";
 import ErrorHandler from "../../utils/ErrorHandler";
 import Wishlist from "../../models/store/Wishlist.model";
 import Product from "../../models/Product.model";
-import mongoose from "mongoose";
 
+/**
+ * Adds an item to the wishlist.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next function.
+ */
 export const addItemToWishlist = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { productId } = req.body;
     const userId = req.customer?._id;
@@ -65,6 +70,13 @@ export const addItemToWishlist = expressAsyncHandler(async (req: Request, res: R
     });
 });
 
+/**
+ * Retrieves the wishlist for a specific user.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next middleware function.
+ * @returns The wishlist for the user.
+ */
 export const getWishlist = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.customer?._id;
 
@@ -87,6 +99,13 @@ export const getWishlist = expressAsyncHandler(async (req: Request, res: Respons
     });
 });
 
+/**
+ * Removes an item from the wishlist.
+ * @param req - The request object.
+ * @param res - The response object.
+ * @param next - The next function.
+ * @returns A JSON response indicating the success or failure of the operation.
+ */
 export const removeItemFromWishlist = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const { productId } = req.params;
     const userId = req.customer?._id;
