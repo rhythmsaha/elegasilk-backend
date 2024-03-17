@@ -1,24 +1,7 @@
 import expressAsyncHandler from "express-async-handler";
 import ErrorHandler from "../../utils/ErrorHandler";
 import Product, { IProduct } from "../../models/Product.model";
-import Cart, { ICartSchema } from "../../models/store/Cart.model";
-
-interface IPopulatedCartItem {
-    productId: {
-        name: string;
-        MRP: number;
-        discount?: number;
-        stock: number;
-    };
-    quantity: number;
-}
-
-interface IPopulatedCart {
-    userId: string;
-    products: IPopulatedCartItem[];
-    totalQuantity?: number;
-    totalPrice?: number;
-}
+import Cart, { ICartSchema, IPopulatedCart } from "../../models/store/Cart.model";
 
 /**
  * Adds an item to the cart for a logged-in user.
@@ -49,7 +32,17 @@ export const addItemToCart = expressAsyncHandler(async (req, res, next) => {
             products: [{ productId, quantity }],
         });
 
-        res.status(201).json({ success: true, cart: newCart });
+        if (!newCart) return next(new ErrorHandler("Failed to create cart", 500));
+
+        const populatedCart = await newCart.populate({
+            path: "products.productId",
+            select: "name MRP discount stock images slug",
+            model: Product,
+        });
+
+        const calculatedCart = populatedCart.calculateTotal();
+
+        res.status(200).json({ success: true, cart: calculatedCart });
         return;
     }
 
@@ -64,7 +57,17 @@ export const addItemToCart = expressAsyncHandler(async (req, res, next) => {
 
     await cart.save();
 
-    res.status(200).json({ success: true, cart });
+    const _cart = await cart.populate({
+        path: "products.productId",
+        select: "name MRP discount stock images slug",
+        model: Product,
+    });
+
+    if (!_cart) return next(new ErrorHandler("Failed to populate cart", 500));
+
+    const calculatedCart = _cart.calculateTotal();
+
+    res.status(200).json({ success: true, cart: calculatedCart });
 });
 
 /**
@@ -100,7 +103,17 @@ export const reduceQuantity = expressAsyncHandler(async (req, res, next) => {
 
     await cart.save();
 
-    res.status(200).json({ success: true, cart });
+    const _cart = await cart.populate({
+        path: "products.productId",
+        select: "name MRP discount stock images slug",
+        model: Product,
+    });
+
+    if (!_cart) return next(new ErrorHandler("Failed to populate cart", 500));
+
+    const calculatedCart = _cart.calculateTotal();
+
+    res.status(200).json({ success: true, cart: calculatedCart });
 });
 
 /**
@@ -130,7 +143,17 @@ export const removeItemFromCart = expressAsyncHandler(async (req, res, next) => 
 
     await cart.save();
 
-    res.status(200).json({ success: true, cart });
+    const _cart = await cart.populate({
+        path: "products.productId",
+        select: "name MRP discount stock images slug",
+        model: Product,
+    });
+
+    if (!_cart) return next(new ErrorHandler("Failed to populate cart", 500));
+
+    const calculatedCart = _cart.calculateTotal();
+
+    res.status(200).json({ success: true, cart: calculatedCart });
 });
 
 /**
@@ -149,7 +172,7 @@ export const getCart = expressAsyncHandler(async (req, res, next) => {
     // check if Cart exists
     const cart = (await Cart.findOne({ userId }).populate({
         path: "products.productId",
-        select: "name MRP discount stock",
+        select: "name MRP discount stock images slug",
         model: Product,
     })) as IPopulatedCart;
 
@@ -160,32 +183,22 @@ export const getCart = expressAsyncHandler(async (req, res, next) => {
 
         if (!newCart) return next(new ErrorHandler("Failed to create cart", 500));
 
-        newCart.totalPrice = 0;
-        newCart.totalQuantity = 0;
+        const _cart = {
+            _id: newCart._id,
+            products: newCart.products,
+            totalPrice: 0,
+            totalQuantity: 0,
+        };
 
-        res.status(200).json({ success: true, cart: newCart });
+        res.status(200).json({ success: true, cart: _cart });
         return;
     }
 
-    // Remove products that are not in stock
-    cart.products = cart.products.filter((item) => item.productId.stock > 0);
+    const calculatedCart = cart.calculateTotal();
 
-    // Calulate total price of each product based on their quantity
-    cart.products.forEach((item) => {
-        const discountPercent = item.productId.discount || 0;
-        let discountAmount = item.productId.MRP * (discountPercent / 100);
-        item.productId.MRP -= discountAmount;
-        item.productId.MRP *= item.quantity;
-        delete item.productId.discount;
-    });
+    if (!calculatedCart) return next(new ErrorHandler("Failed to calculate cart", 500));
 
-    // Calculate total price of the cart
-    cart.totalPrice = cart.products.reduce((acc, item) => acc + item.productId.MRP, 0);
-
-    // Count total quantity of products in the cart with reduce method
-    cart.totalQuantity = cart.products.reduce((acc, item) => acc + item.quantity, 0);
-
-    res.status(200).json({ success: true, cart });
+    res.status(200).json({ success: true, cart: calculatedCart });
 });
 
 /**
@@ -203,8 +216,10 @@ export const clearCart = expressAsyncHandler(async (req, res, next) => {
     if (!cart) return next(new ErrorHandler("Cart not found", 404));
 
     cart.products = [];
-    cart.totalPrice = 0;
-    cart.totalQuantity = 0;
 
-    await cart.save();
+    // await cart.save();
+
+    const _cart = cart.calculateTotal();
+
+    res.status(200).json({ success: true, cart: _cart });
 });

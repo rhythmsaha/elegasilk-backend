@@ -169,6 +169,7 @@ export const getProductsPaths = expressAsyncHandler(async (req, res, next) => {
     }
 
     const paths = products.map((product) => {
+        if (product.published === false) return;
         return {
             params: {
                 slug: product.slug,
