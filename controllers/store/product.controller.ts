@@ -52,6 +52,7 @@ export const getProductsForStoreFront = expressAsyncHandler(async (req, res, nex
             // Get products sorted by relevance
             sortBy = "stock";
             sortOrder = "desc";
+
             break;
         default:
             // Get products sorted by relevance
