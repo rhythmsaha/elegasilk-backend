@@ -111,8 +111,8 @@ export const createOrder = expressAsyncHandler(async (req, res, next) => {
             return next(new ErrorHandler("Invalid payment method", 400));
         }
 
-        cart.products = [];
-        cart.calculateTotal();
+        // cart.products = [];
+        // cart.calculateTotal();
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 500));
     }
@@ -177,9 +177,12 @@ export const checkSession = expressAsyncHandler(async (req, res, next) => {
     }
 });
 
-export const webhook = async (req: Request, res: Response, next: NextFunction) => {
+export const webhook = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const payload = req.body;
-    const sig = req.headers["stripe-signature"];
+
+    if (!webhookSecret) {
+        return next(new ErrorHandler("Webhook Error: Secret not provided", 400));
+    }
 
     const payloadString = JSON.stringify(payload, null, 2);
 
@@ -191,24 +194,19 @@ export const webhook = async (req: Request, res: Response, next: NextFunction) =
     try {
         let event = stripe.webhooks.constructEvent(payloadString, header, webhookSecret);
 
+        console.log("🔔  Webhook received!", event.type);
+
         // Handle the checkout.session.completed event
         if (event.type === "checkout.session.completed") {
-            // Retrieve the session. If you require line items in the response, you may include them by expanding line_items.
-            const sessionWithLineItems = await stripe.checkout.sessions.retrieve(event.data.object.id, {
-                expand: ["line_items"],
-            });
-            const lineItems = sessionWithLineItems.metadata;
-
-            console.log("🔔  Checkout session completed!", sessionWithLineItems.id);
-
-            // Fulfill the purchase...
-            fulfillOrder(lineItems);
+            console.log("🔔  Checkout session completed!", event.data.object.id);
+            Order.findOneAndUpdate({ sessionId: event.data.object.id }, { status: "PLACED" });
+        } else if (event.type === "checkout.session.expired") {
+            console.log("🔔  Checkout session failed!", event.data.object.id);
+            Order.findOneAndUpdate({ sessionId: event.data.object.id }, { status: "FAILED" });
         }
     } catch (err: any) {
-        console.log(`⚠️  Webhook Error: ${err.message}`);
-        res.status(400).send(`Webhook Error: ${err.message}`);
-        return;
+        return next(new ErrorHandler(`Webhook Error: ${err.message}`, 400));
     }
 
     res.status(200).end();
-};
+});

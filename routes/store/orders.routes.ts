@@ -7,7 +7,7 @@ const OrderRouter = express.Router();
 
 OrderRouter.post("/create-checkout-session", authorizeAccessToken(CUSTOMER_JWT_SECRET, true), createOrder);
 
-OrderRouter.post("/webhook", express.raw({ type: "application/json" }), webhook);
+OrderRouter.post("/webhook", webhook);
 
 OrderRouter.get("/check-session", authorizeAccessToken(CUSTOMER_JWT_SECRET, true), checkSession);
 
