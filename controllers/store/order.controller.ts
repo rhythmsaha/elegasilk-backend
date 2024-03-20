@@ -43,7 +43,7 @@ export const createOrder = expressAsyncHandler(async (req, res, next) => {
             return next(new ErrorHandler("No products in stock", 400));
 
         if (paymentMethod === PaymentMethod.COD) {
-            const order = Order.create({
+            const order = await Order.create({
                 userId: req.customer._id,
                 items: _cart.products,
                 total: _cart.totalPrice,
@@ -56,7 +56,8 @@ export const createOrder = expressAsyncHandler(async (req, res, next) => {
                 return next(new ErrorHandler("Something went wrong!", 500));
             }
 
-            res.status(200).json({ message: "Order placed successfully", order });
+            const returnUrl = `${YOUR_DOMAIN}/checkout/placed?orderId=${order.orderId}`;
+            res.status(200).json({ message: "Order placed successfully", url: returnUrl });
             return;
         } else if (paymentMethod === PaymentMethod.STRIPE) {
             const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] | undefined = _cart.products.map((item) => {
