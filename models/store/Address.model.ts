@@ -15,7 +15,7 @@ export interface IAddress extends Document {
     city: string;
     state: string;
     pincode: string;
-    isDefault: boolean;
+    isDefault?: boolean;
 }
 
 const AddressSchema = new Schema<IAddress>(

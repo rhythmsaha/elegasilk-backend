@@ -1,0 +1,214 @@
+import expressAsyncHandler from "express-async-handler";
+import Stripe from "stripe";
+import { NextFunction, Request, Response } from "express";
+import dotenv from "dotenv";
+import Cart from "../../models/store/Cart.model";
+import ErrorHandler from "../../utils/ErrorHandler";
+import Order from "../../models/store/Order.model";
+dotenv.config();
+
+const Stripe_APIKEY = process.env.STRIPE_API_KEY || "";
+const webhookSecret = process.env.WEBHOOK_SECRET || "";
+const Stripe_SECRET = process.env.STRIPE_SECRET_KEY || "";
+
+enum PaymentMethod {
+    COD = "CASH_ON_DELIVERY",
+    STRIPE = "STRIPE",
+}
+
+const stripe = new Stripe(Stripe_SECRET);
+
+const YOUR_DOMAIN = "http://localhost:3000";
+
+const fulfillOrder = (lineItems: any) => {
+    // TODO: fill me in
+    console.log("Fulfilling order", lineItems);
+};
+
+export const createOrder = expressAsyncHandler(async (req, res, next) => {
+    if (!req.customer?._id) {
+        return next(new ErrorHandler("User not found", 404));
+    }
+
+    const { paymentMethod, email, cartId, address } = req.body;
+
+    if (!cartId) return next(new ErrorHandler("Cart Id is required", 400));
+
+    try {
+        const cart = await Cart.findById(cartId).populate({
+            path: "products.productId",
+            select: "name price discount stock MRP slug images",
+        });
+
+        if (!cart) return next(new ErrorHandler("Cart not found", 404));
+
+        const _cart = cart.calculateTotal();
+
+        if (!_cart.totalQuantity || _cart.totalQuantity === 0)
+            return next(new ErrorHandler("No products in stock", 400));
+
+        if (paymentMethod === PaymentMethod.COD) {
+            const order = Order.create({
+                userId: req.customer._id,
+                items: _cart.products,
+                total: _cart.totalPrice,
+                address: address,
+                paymentMethod: PaymentMethod.COD,
+                status: "PLACED",
+            });
+
+            if (!order) {
+                return next(new ErrorHandler("Something went wrong!", 500));
+            }
+
+            res.status(200).json({ message: "Order placed successfully", order });
+            return;
+        } else if (paymentMethod === PaymentMethod.STRIPE) {
+            const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] | undefined = _cart.products.map((item) => {
+                return {
+                    price_data: {
+                        currency: "inr",
+
+                        product_data: {
+                            name: item.productId.name,
+                            images: item.productId.images,
+                        },
+
+                        unit_amount: item.productId.MRP * 100,
+                    },
+                    quantity: item.quantity,
+                };
+            });
+
+            const session = await stripe.checkout.sessions.create({
+                customer_email: email,
+                line_items: lineItems,
+                mode: "payment",
+                success_url: `${YOUR_DOMAIN}/checkout/status?session_id={CHECKOUT_SESSION_ID}`,
+                cancel_url: `${YOUR_DOMAIN}/checkout/status?session_id={CHECKOUT_SESSION_ID}`,
+            });
+
+            if (!session) {
+                return next(new ErrorHandler("Something went wrong!", 500));
+            }
+
+            const order = Order.create({
+                userId: req.customer._id,
+                sessionId: session.id,
+                items: _cart.products,
+                total: _cart.totalPrice,
+                address: address,
+                paymentMethod: PaymentMethod.STRIPE,
+                status: "PENDING",
+            });
+
+            if (!order) {
+                return next(new ErrorHandler("Something went wrong!", 500));
+            }
+
+            res.status(200).json({ url: session.url });
+        } else {
+            return next(new ErrorHandler("Invalid payment method", 400));
+        }
+
+        cart.products = [];
+        cart.calculateTotal();
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+});
+
+export const checkSession = expressAsyncHandler(async (req, res, next) => {
+    const userId = req.customer?._id;
+
+    if (!userId) {
+        return next(new ErrorHandler("User not found", 404));
+    }
+
+    const sessionId = req.query.sessionId as string;
+
+    if (!sessionId) {
+        return next(new ErrorHandler("Session Id is required", 400));
+    }
+
+    try {
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+        if (!session) {
+            return next(new ErrorHandler("Session not found", 404));
+        }
+
+        if (session.payment_status === "paid") {
+            const order = await Order.findOne({ sessionId }).select(
+                "-address -createdAt -updatedAt -__v -sessionId -userId"
+            );
+
+            if (!order) {
+                return next(new ErrorHandler("Order not found", 404));
+            }
+
+            if (order.status !== "PLACED") {
+                order.status = "PLACED";
+                await order.save();
+            }
+
+            res.status(200).json({
+                status: true,
+                order,
+            });
+        } else {
+            const order = await Order.findOneAndUpdate(
+                { sessionId },
+                {
+                    $set: {
+                        status: "FAILED",
+                    },
+                }
+            ).select("-address -createdAt -updatedAt -__v -items");
+
+            res.status(200).json({
+                status: false,
+                message: "Payment not completed",
+                order: order,
+            });
+        }
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+});
+
+export const webhook = async (req: Request, res: Response, next: NextFunction) => {
+    const payload = req.body;
+    const sig = req.headers["stripe-signature"];
+
+    const payloadString = JSON.stringify(payload, null, 2);
+
+    const header = stripe.webhooks.generateTestHeaderString({
+        payload: payloadString,
+        secret: webhookSecret,
+    });
+
+    try {
+        let event = stripe.webhooks.constructEvent(payloadString, header, webhookSecret);
+
+        // Handle the checkout.session.completed event
+        if (event.type === "checkout.session.completed") {
+            // Retrieve the session. If you require line items in the response, you may include them by expanding line_items.
+            const sessionWithLineItems = await stripe.checkout.sessions.retrieve(event.data.object.id, {
+                expand: ["line_items"],
+            });
+            const lineItems = sessionWithLineItems.metadata;
+
+            console.log("🔔  Checkout session completed!", sessionWithLineItems.id);
+
+            // Fulfill the purchase...
+            fulfillOrder(lineItems);
+        }
+    } catch (err: any) {
+        console.log(`⚠️  Webhook Error: ${err.message}`);
+        res.status(400).send(`Webhook Error: ${err.message}`);
+        return;
+    }
+
+    res.status(200).end();
+};

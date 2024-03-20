@@ -11,6 +11,7 @@
         "dev": "ts-node-dev --respawn --transpile-only server.ts"
     },
     "dependencies": {
+        "body-parser": "^1.20.2",
         "cookie-parser": "^1.4.6",
         "cors": "^2.8.5",
         "dotenv": "^16.3.1",
@@ -23,6 +24,7 @@
         "mongoose": "^8.0.0",
         "mongoose-slug-generator": "^1.0.4",
         "nodemailer": "^6.9.12",
+        "stripe": "^14.21.0",
         "validator": "^13.11.0"
     },
     "devDependencies": {

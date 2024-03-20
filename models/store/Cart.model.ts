@@ -19,8 +19,8 @@ export interface IPopulatedCart extends Document {
     _id: string;
     userId: string;
     products: IPopulatedCartItem[];
-    totalQuantity?: number;
-    totalPrice?: number;
+    totalQuantity: number;
+    totalPrice: number;
 
     calculateTotal: () => IPopulatedCart;
 }
