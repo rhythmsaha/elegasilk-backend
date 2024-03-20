@@ -20,11 +20,6 @@ const stripe = new Stripe(Stripe_SECRET);
 
 const YOUR_DOMAIN = "http://localhost:3000";
 
-const fulfillOrder = (lineItems: any) => {
-    // TODO: fill me in
-    console.log("Fulfilling order", lineItems);
-};
-
 export const createOrder = expressAsyncHandler(async (req, res, next) => {
     if (!req.customer?._id) {
         return next(new ErrorHandler("User not found", 404));
@@ -198,11 +193,11 @@ export const webhook = expressAsyncHandler(async (req: Request, res: Response, n
 
         // Handle the checkout.session.completed event
         if (event.type === "checkout.session.completed") {
-            console.log("🔔  Checkout session completed!", event.data.object.id);
             Order.findOneAndUpdate({ sessionId: event.data.object.id }, { status: "PLACED" });
         } else if (event.type === "checkout.session.expired") {
-            console.log("🔔  Checkout session failed!", event.data.object.id);
             Order.findOneAndUpdate({ sessionId: event.data.object.id }, { status: "FAILED" });
+        } else {
+            res.status(200).end();
         }
     } catch (err: any) {
         return next(new ErrorHandler(`Webhook Error: ${err.message}`, 400));
