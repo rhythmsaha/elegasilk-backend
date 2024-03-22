@@ -20,7 +20,7 @@ const stripe = new Stripe(Stripe_SECRET);
 
 const YOUR_DOMAIN = "http://localhost:3000";
 
-export const createOrder = expressAsyncHandler(async (req, res, next) => {
+export const createOrder = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     if (!req.customer?._id) {
         return next(new ErrorHandler("User not found", 404));
     }
@@ -114,7 +114,7 @@ export const createOrder = expressAsyncHandler(async (req, res, next) => {
     }
 });
 
-export const checkSession = expressAsyncHandler(async (req, res, next) => {
+export const checkSession = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const userId = req.customer?._id;
 
     if (!userId) {
@@ -206,3 +206,77 @@ export const webhook = expressAsyncHandler(async (req: Request, res: Response, n
 
     res.status(200).end();
 });
+
+export const getOrders = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const cutomerId = req.customer?._id;
+
+    try {
+        const orders = await Order.find({ userId: cutomerId }).select(
+            "-sessionId -address -items.productId.discount -items.productId.stock -items.totalPrice -__v"
+        );
+
+        const structuredOrders = structureOrders(orders);
+
+        res.status(200).json({
+            success: true,
+            orders: structuredOrders,
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+});
+
+export const getSingleOrder = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const orderId = req.params.orderId;
+    if (!orderId) return next(new ErrorHandler(`Order Id is required`, 400));
+
+    try {
+        const order = await Order.findOne({ orderId });
+
+        if (!order) return next(new ErrorHandler(`Order not found`, 404));
+
+        res.status(200).json({
+            status: true,
+            order,
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+});
+
+export const updateOrder = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
+
+export function structureOrders(orders: any) {
+    return orders.map((order: any) => {
+        return {
+            _id: order._id,
+            userId: order.userId,
+            total: order.total,
+            status: order.status,
+            paymentMethod: order.paymentMethod,
+            orderId: order.orderId,
+
+            createdAt: new Date(order.createdAt).toLocaleDateString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+            }),
+            updatedAt: new Date(order.updatedAt).toLocaleDateString("en-US", {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+            }),
+
+            items: order.items.map((item: any) => {
+                return {
+                    _id: item.productId._id,
+                    name: item.productId.name,
+                    images: item.productId.images,
+                    MRP: item.productId.MRP,
+                    slug: item.productId.slug,
+                    quantity: item.quantity,
+                };
+            }),
+        };
+    });
+}

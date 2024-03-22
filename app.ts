@@ -18,9 +18,6 @@ import subCategoryRouter from "./routes/admin/subcategories.routes";
 import productRouter from "./routes/admin/product.routes";
 
 //Import StoreFrontAPI Routes
-import StoreCustomerRoutes from "./routes/store/customer.routes";
-import StoreProductRoutes from "./routes/store/products.routes";
-import StoreCollectionRoutes from "./routes/store/collection.routes";
 import AdminRoutes from "./routes/admin";
 import StoreRouter from "./routes/store";
 
@@ -46,9 +43,8 @@ app.get("/api/test", async (req: Request, res: Response, next: NextFunction) => 
     });
 });
 
-import nodemailer from "nodemailer";
 import dotenv from "dotenv";
-import { sendMail } from "./lib/mail";
+import OrderRouter from "./routes/admin/orders.routes";
 dotenv.config();
 
 // Routes
@@ -58,6 +54,7 @@ app.use("/api/subcategories", subCategoryRouter);
 app.use("/api/collections", collectionRouter);
 app.use("/api/colors", colorRouter);
 app.use("/api/products", productRouter);
+app.use("/api/orders", OrderRouter);
 
 // AdminAPI - v1
 app.use("/api/v1/admin", AdminRoutes);
