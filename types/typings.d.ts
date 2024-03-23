@@ -37,9 +37,9 @@ export type ISortOrder = "asc" | "desc";
 declare global {
     namespace Express {
         interface Request {
-            admin?: IRequestAdminObject;
+            admin: IRequestAdminObject;
             jwtPayload?: JwtPayload;
-            customer?: IRequestCustomerObject;
+            customer: IRequestCustomerObject;
         }
     }
 }

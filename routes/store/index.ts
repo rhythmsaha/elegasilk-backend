@@ -10,6 +10,7 @@ import AddressRouter from "./address.routes";
 import wishlistRouter from "./wishlist.routes";
 import CartRouter from "./cart.routes";
 import OrderRouter from "./orders.routes";
+import RatingsRouter from "./ratings.routes";
 
 const StoreRouter = express.Router();
 
@@ -20,5 +21,6 @@ StoreRouter.use("/address", AddressRouter);
 StoreRouter.use("/wishlist", wishlistRouter);
 StoreRouter.use("/cart", CartRouter);
 StoreRouter.use("/orders", OrderRouter);
+StoreRouter.use("/ratings", RatingsRouter);
 
 export default StoreRouter;
