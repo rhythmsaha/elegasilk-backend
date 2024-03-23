@@ -1,5 +1,6 @@
 import express from "express";
 import {
+    cancelOrder,
     checkSession,
     createOrder,
     getOrders,
@@ -20,5 +21,7 @@ OrderRouter.get("/check-session", authorizeAccessToken(CUSTOMER_JWT_SECRET, true
 OrderRouter.get("/all", authorizeAccessToken(CUSTOMER_JWT_SECRET, true), getOrders);
 
 OrderRouter.get("/single/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET, true), getSingleOrder);
+
+OrderRouter.put("/cancel/:id", authorizeAccessToken(CUSTOMER_JWT_SECRET, true), cancelOrder);
 
 export default OrderRouter;

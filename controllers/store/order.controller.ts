@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import Cart from "../../models/store/Cart.model";
 import ErrorHandler from "../../utils/ErrorHandler";
 import Order from "../../models/store/Order.model";
+import mongoose, { PipelineStage } from "mongoose";
 dotenv.config();
 
 const Stripe_APIKEY = process.env.STRIPE_API_KEY || "";
@@ -209,17 +210,69 @@ export const webhook = expressAsyncHandler(async (req: Request, res: Response, n
 
 export const getOrders = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const cutomerId = req.customer?._id;
+    const pageSize = Number(req.query.pageSize) || 5;
+    const page = Number(req.query.page) || 1;
+
+    let startFrom = 0; // Calculate skip value
+    let endAt = 1; // Calculate limit value
+
+    let pipeline: PipelineStage[] = [];
+
+    if (page) startFrom = (page - 1) * pageSize;
+    if (pageSize) endAt = pageSize;
+
+    pipeline.push({
+        $facet: {
+            orders: [
+                {
+                    $match: {
+                        userId: new mongoose.Types.ObjectId(cutomerId),
+                    },
+                },
+                { $sort: { createdAt: -1 } },
+                { $skip: startFrom },
+                { $limit: endAt },
+                {
+                    $project: {
+                        sessionId: 0,
+                        address: 0,
+                        items: { productId: { discount: 0, stock: 0, totalPrice: 0 } },
+                        __v: 0,
+                    },
+                },
+            ],
+            totalCount: [{ $count: "count" }],
+        },
+    });
 
     try {
-        const orders = await Order.find({ userId: cutomerId }).select(
-            "-sessionId -address -items.productId.discount -items.productId.stock -items.totalPrice -__v"
-        );
+        // const orders = await Order.find({ userId: cutomerId })
+        //     .sort({ createdAt: -1 })
+        //     .skip(startFrom)
+        //     .limit(endAt)
+        //     .select("-sessionId -address -items.productId.discount -items.productId.stock -items.totalPrice -__v");
 
-        const structuredOrders = structureOrders(orders);
+        const orders = await Order.aggregate(pipeline);
+        if (!orders) return next(new ErrorHandler("No Orders Found", 404));
+
+        // Format Response
+        const totalCount = orders[0].totalCount[0]?.count || 0;
+        const _Orders = orders[0].orders;
+        const maxPage = Math.ceil(totalCount / pageSize);
+        let currentPage = page;
+
+        if (currentPage > maxPage) {
+            currentPage = maxPage;
+        }
+
+        const structuredOrders = structureOrders(_Orders);
 
         res.status(200).json({
             success: true,
             orders: structuredOrders,
+            page: currentPage,
+            maxPage,
+            totalCount,
         });
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 500));
@@ -227,24 +280,62 @@ export const getOrders = expressAsyncHandler(async (req: Request, res: Response,
 });
 
 export const getSingleOrder = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-    const orderId = req.params.orderId;
+    const orderId = req.params.id;
     if (!orderId) return next(new ErrorHandler(`Order Id is required`, 400));
 
     try {
-        const order = await Order.findOne({ orderId });
+        const order = await Order.findById(orderId);
 
         if (!order) return next(new ErrorHandler(`Order not found`, 404));
 
+        if (order.userId.toString() !== req.customer?._id) {
+            return next(new ErrorHandler(`Unauthorized`, 401));
+        }
+
         res.status(200).json({
             status: true,
-            order,
+            order: structureSingleOrder(order),
         });
+
+        // res.status(200).json({
+        //     status: true,
+        //     order,
+        // });
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 500));
     }
 });
 
-export const updateOrder = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {});
+export const cancelOrder = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const orderId = req.params.id;
+    if (!orderId) return next(new ErrorHandler(`Order Id is required`, 400));
+
+    const customerId = req.customer?._id;
+
+    try {
+        const order = await Order.findById(orderId);
+
+        if (!order) return next(new ErrorHandler(`Order not found`, 404));
+        if (order.userId.toString() !== customerId) return next(new ErrorHandler(`Unauthorized`, 401));
+
+        if (order.status === "CANCELLED") return next(new ErrorHandler(`Order already cancelled`, 400));
+
+        if (order.status === "PLACED" || order.status === "PENDING") {
+            order.status = "CANCELLED";
+        } else {
+            return next(new ErrorHandler(`Order can't be cancelled after it has been shipped`, 400));
+        }
+
+        await order.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Order cancelled successfully",
+        });
+    } catch (error: any) {
+        return next(new ErrorHandler(error.message, 500));
+    }
+});
 
 export function structureOrders(orders: any) {
     return orders.map((order: any) => {
@@ -279,4 +370,38 @@ export function structureOrders(orders: any) {
             }),
         };
     });
+}
+
+function structureSingleOrder(order: any) {
+    return {
+        _id: order._id,
+        orderId: order.orderId,
+        sessionId: order.sessionId,
+        customer: {
+            _id: (order.userId as any)._id,
+            firstName: (order.userId as any).firstName,
+            lastName: (order.userId as any).lastName,
+            email: (order.userId as any).email,
+            mobile: (order.userId as any).mobile,
+        },
+
+        address: order.address,
+        items: order.items.map((item: any) => {
+            return {
+                _id: item.productId._id,
+                name: item.productId.name,
+                images: item.productId.images[0] || "",
+                MRP: item.productId.MRP,
+                slug: item.productId.slug,
+                quantity: item.quantity,
+            };
+        }),
+        totalQuantity: order.items.reduce((acc: number, item: any) => acc + item.quantity, 0),
+
+        total: order.total,
+        paymentMethod: order.paymentMethod,
+        status: order.status,
+        createdAt: order.get("createdAt"),
+        updatedAt: order.get("updatedAt"),
+    };
 }

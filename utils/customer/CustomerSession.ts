@@ -5,23 +5,37 @@ class CustomerSession {
     firstName: ICustomer["firstName"];
     lastName: ICustomer["lastName"];
     email: ICustomer["email"];
-    phone: ICustomer["phone"];
+
     status: ICustomer["status"];
     verified: ICustomer["verified"];
     static accessToken: string;
 
-    constructor(id: ICustomer["_id"], firstName: ICustomer["firstName"], lastName: ICustomer["lastName"], email: ICustomer["email"], phone: ICustomer["phone"], status: ICustomer["status"], verified: ICustomer["verified"]) {
+    constructor(
+        id: ICustomer["_id"],
+        firstName: ICustomer["firstName"],
+        lastName: ICustomer["lastName"],
+        email: ICustomer["email"],
+        status: ICustomer["status"],
+        verified: ICustomer["verified"]
+    ) {
         this._id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
-        this.phone = phone;
+
         this.status = status;
         this.verified = verified;
     }
 
     static from(customer: ICustomer): CustomerSession {
-        return new CustomerSession(customer._id, customer.firstName, customer.lastName, customer.email, customer.phone, customer.status, customer.verified);
+        return new CustomerSession(
+            customer._id,
+            customer.firstName,
+            customer.lastName,
+            customer.email,
+            customer.status,
+            customer.verified
+        );
     }
 
     private createProfile() {
@@ -30,7 +44,6 @@ class CustomerSession {
             firstName: this.firstName,
             lastName: this.lastName,
             email: this.email,
-            phone: this.phone,
         };
     }
 
