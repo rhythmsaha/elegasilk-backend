@@ -2,8 +2,7 @@ import expressAsyncHandler from "express-async-handler";
 import Product, { IProduct } from "../../models/Product.model";
 import ErrorHandler from "../../utils/ErrorHandler";
 import { ISortOrder } from "../../types/typings";
-import mongoose, { FilterQuery, Mongoose, PipelineStage } from "mongoose";
-import Color from "../../models/color.model";
+import mongoose, { FilterQuery, PipelineStage } from "mongoose";
 import splitQuery from "../../utils/splitQuery";
 
 const checkBoolean = (value: any) => {
@@ -93,20 +92,8 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
  */
 
 export const updateProduct = expressAsyncHandler(async (req, res, next) => {
-    const {
-        name,
-        description,
-        images,
-        MRP,
-        discount,
-        published,
-        colors,
-        collections,
-        attributes,
-        stock,
-        specs,
-        sku,
-    } = req.body as IProduct;
+    const { name, description, images, MRP, discount, published, colors, collections, attributes, stock, specs, sku } =
+        req.body as IProduct;
 
     // status validation
     if (!checkBoolean(published)) {
@@ -188,8 +175,7 @@ export const deleteProduct = expressAsyncHandler(async (req, res, next) => {
  * @returns The products.
  */
 export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
-    const sortBy =
-        (req.query.sortby as "name" | "updatedAt" | "published" | "stock" | "MRP") || "name"; //Get  sort by propery
+    const sortBy = (req.query.sortby as "name" | "updatedAt" | "published" | "stock" | "MRP") || "name"; //Get  sort by propery
 
     const sortOrder: ISortOrder = (req.query.sortorder as ISortOrder) || "asc"; // Get sort order Query
 

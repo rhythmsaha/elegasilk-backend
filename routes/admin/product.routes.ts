@@ -21,12 +21,7 @@ productRouter.post(
     createProduct
 );
 
-productRouter.put(
-    "/:id",
-    authorizeAccessToken(adminSecret),
-    authorizeAdminRole("superadmin", "admin"),
-    updateProduct
-);
+productRouter.put("/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), updateProduct);
 productRouter.delete(
     "/:id",
     authorizeAccessToken(adminSecret),

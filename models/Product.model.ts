@@ -39,12 +39,13 @@ export interface IProduct extends Document {
         }
     ];
 
-    rating?: {
-        average: number;
-        count: number;
-    };
-
     // Reviews
+    ratings: [
+        {
+            user: string;
+            rating: number;
+        }
+    ];
 }
 
 const ProductSchema = new Schema<IProduct>(
@@ -75,7 +76,6 @@ const ProductSchema = new Schema<IProduct>(
                 type: String,
                 trim: true,
                 required: [true, "Please provide an image URL"],
-                validate: [validator.isURL, "Please provide a valid image URL"],
             },
         ],
 
@@ -153,11 +153,32 @@ const ProductSchema = new Schema<IProduct>(
                 },
             },
         ],
+
+        // Reviews
+        ratings: [
+            {
+                user: {
+                    type: Schema.Types.ObjectId,
+                    ref: "User",
+                },
+
+                rating: {
+                    type: Number,
+                    min: [1, "Rating must be at least 1"],
+                    max: [5, "Rating cannot be more than 5"],
+                },
+            },
+        ],
     },
     {
         timestamps: true,
     }
 );
+
+ProductSchema.pre("save", function (next) {
+    this.slug = this.slug + "_" + this.sku;
+    next();
+});
 
 const Product = model<IProduct>("Product", ProductSchema);
 export default Product;

@@ -83,45 +83,60 @@ export const addRating = asyncHandler(async (req, res, next) => {
 
 export const getRatings = asyncHandler(async (req, res, next) => {
     const productId = req.params.id;
+    const cardOnly = req.query.cardOnly;
 
-    const [ratings, groupedRatings] = await Promise.all([
-        Rating.find({ productId: productId }).populate({
-            path: "customerId",
-            select: "firstName lastName",
-        }),
-        Rating.aggregate([
+    if (cardOnly) {
+        const ratings = await Rating.aggregate([
             { $match: { productId: new mongoose.Types.ObjectId(productId) } },
             { $group: { _id: "$rating", count: { $sum: 1 } } },
-        ]),
-    ]);
+        ]);
 
-    // Calculate average rating
-    const averageRating = ratings.reduce((acc, rating: any) => acc + rating.rating, 0) / ratings.length;
+        const averageRating = ratings.reduce((acc, rating: any) => acc + rating.rating, 0) / ratings.length;
 
-    // Calculate total number of ratings
-    const totalRatings = ratings.length;
+        // Calculate total number of ratings
+        const totalRatings = ratings.length;
 
-    // Calculate total number of ratings for each rating value
-    const ratingsBreakdown = groupedRatings.reduce((acc, group) => {
-        acc[group._id] = group.count;
-        return acc;
-    }, {});
+        res.json({
+            success: true,
+            data: {
+                averageRating,
+                totalRatings,
+            },
+        });
+    } else {
+        const [ratings, groupedRatings] = await Promise.all([
+            Rating.find({ productId: productId }).populate({
+                path: "customerId",
+                select: "firstName lastName",
+            }),
+            Rating.aggregate([
+                { $match: { productId: new mongoose.Types.ObjectId(productId) } },
+                { $group: { _id: "$rating", count: { $sum: 1 } } },
+            ]),
+        ]);
 
-    // Calculate total number of ratings for each rating value in percentage
-    const ratingsPercentage: { [key: string]: number } = {};
-    for (let rating in ratingsBreakdown) {
-        ratingsPercentage[rating] = (ratingsBreakdown[rating] / totalRatings) * 100;
+        // Calculate average rating
+        const averageRating = ratings.reduce((acc, rating: any) => acc + rating.rating, 0) / ratings.length;
+
+        // Calculate total number of ratings
+        const totalRatings = ratings.length;
+
+        let allStars = Array.from({ length: 5 }, (_, i) => ({ star: i + 1, count: 0 }));
+
+        // Fill in the counts from groupedRatings
+        const ratingsBreakdown = allStars.map((star) => {
+            const found = groupedRatings.find((group) => group._id === star.star);
+            return found ? { star: star.star, count: found.count } : star;
+        });
+
+        res.json({
+            success: true,
+            data: {
+                averageRating,
+                totalRatings,
+                ratings,
+                ratingsBreakdown,
+            },
+        });
     }
-
-    // Return the calculated data
-    res.json({
-        success: true,
-        data: {
-            averageRating,
-            totalRatings,
-            ratings,
-            ratingsBreakdown,
-            ratingsPercentage,
-        },
-    });
 });
