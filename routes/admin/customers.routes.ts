@@ -11,6 +11,13 @@ import {
 } from "../../controllers/admin/customer.controller";
 const router = express.Router();
 
+router.put(
+    "/status",
+    authorizeAccessToken(adminSecret),
+    authorizeAdminRole("superadmin", "admin"),
+    toggleCustomerStatus
+);
+
 router.post("/", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), createCustomerByAdmin);
 
 router.put(
@@ -29,13 +36,6 @@ router.delete(
     authorizeAccessToken(adminSecret),
     authorizeAdminRole("superadmin", "admin"),
     deleteCustomerAccountByAdmin
-);
-
-router.put(
-    "/status",
-    authorizeAccessToken(adminSecret),
-    authorizeAdminRole("superadmin", "admin"),
-    toggleCustomerStatus
 );
 
 export default router;

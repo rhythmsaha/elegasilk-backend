@@ -45,6 +45,7 @@ app.get("/api/test", async (req: Request, res: Response, next: NextFunction) => 
 import dotenv from "dotenv";
 import OrderRouter from "./routes/admin/orders.routes";
 import CustomerRouter from "./routes/admin/customers.routes";
+import { monthlySalesAndReturns, salesReport, weeklySalesReport } from "./controllers/admin/dashboard.controller";
 dotenv.config();
 
 // Routes
@@ -62,6 +63,10 @@ app.use("/api/v1/admin", AdminRoutes);
 
 // Storefront Api - v1
 app.use("/api/v1/store", StoreRouter);
+
+app.get("/week", weeklySalesReport);
+app.get("/report", salesReport);
+app.get("/pie", monthlySalesAndReturns);
 
 // Catch Unknown Routes
 app.all("*", (req: Request, res: Response, next: NextFunction) => {

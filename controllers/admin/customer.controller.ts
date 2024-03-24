@@ -143,4 +143,29 @@ export const getCustomersListByAdmin = expressAsyncHandler(async (req, res, next
     } as any);
 });
 
-export const toggleCustomerStatus = expressAsyncHandler(async (req, res, next) => {});
+export const toggleCustomerStatus = expressAsyncHandler(async (req, res, next) => {
+    console.log("Toggle Customer Status");
+
+    const customerId = req.body.id;
+    const status = req.body.status as boolean;
+
+    const customer = await Customer.findById(customerId);
+    if (!customer) return next(new ErrorHandler("Customer not found", 404));
+
+    if (status === undefined) return next(new ErrorHandler("Invalid status value", 400));
+
+    if (status === customer.status) return next(new ErrorHandler("Customer status is already set to this value", 400));
+
+    if (typeof status !== "boolean") return next(new ErrorHandler("Invalid status value", 400));
+
+    customer.status = status;
+    const updatedCustomer = await customer.save();
+
+    if (!updatedCustomer) return next(new ErrorHandler("Failed to update customer status", 400));
+
+    res.status(200).json({
+        success: true,
+        message: "Customer status updated successfully",
+        customer: updatedCustomer,
+    });
+});
