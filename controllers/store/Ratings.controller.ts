@@ -3,6 +3,7 @@ import Order from "../../models/store/Order.model";
 import Rating from "../../models/store/Ratings.model";
 import ErrorHandler from "../../utils/ErrorHandler";
 import mongoose from "mongoose";
+import Product from "../../models/Product.model";
 
 export const checkIfPurchased = asyncHandler(async (req, res, next) => {
     const customerId = req.customer._id;
@@ -60,6 +61,18 @@ export const addRating = asyncHandler(async (req, res, next) => {
     }
 
     try {
+        const product = await Product.findById(productId);
+        if (!product) {
+            res.status(404);
+            throw new Error("Product not found");
+        }
+
+        const findCustomerId = product.ratings.find((r) => r.user.toString() === customerId.toString());
+        if (findCustomerId) {
+            res.status(400);
+            throw new Error("You have already rated this product");
+        }
+
         const newRating = new Rating({
             productId: productId,
             customerId: customerId,
@@ -69,6 +82,12 @@ export const addRating = asyncHandler(async (req, res, next) => {
         });
 
         await newRating.save();
+        product.ratings.push({
+            user: customerId,
+            rating: rating,
+        });
+
+        product.save();
 
         res.status(201).json({
             success: true,

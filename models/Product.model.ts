@@ -1,7 +1,4 @@
-import { Document, Schema, model, plugin } from "mongoose";
-import validator from "validator";
-import urlSlug from "mongoose-slug-generator";
-plugin(urlSlug);
+import { Document, Schema, model } from "mongoose";
 
 export interface IProduct extends Document {
     name: string;
@@ -62,7 +59,7 @@ const ProductSchema = new Schema<IProduct>(
         slug: {
             type: String,
             index: true,
-            slug: "name",
+            unique: true,
         },
 
         description: {
@@ -176,7 +173,10 @@ const ProductSchema = new Schema<IProduct>(
 );
 
 ProductSchema.pre("save", function (next) {
-    this.slug = this.slug + "_" + this.sku;
+    const name = this.name;
+    const slug = name.replace(/ /g, "_").toLowerCase();
+
+    this.slug = slug + "_" + this.sku;
     next();
 });
 

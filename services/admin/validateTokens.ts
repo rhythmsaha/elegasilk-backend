@@ -1,7 +1,5 @@
 import { redis } from "../../lib/redis";
 import ErrorHandler from "../../utils/ErrorHandler";
-import generateOTP from "../../utils/generateOtp";
-import crypto from "crypto";
 import { IAdminPasswordResetSessionData } from "./createTokens";
 import { NextFunction, Request } from "express";
 

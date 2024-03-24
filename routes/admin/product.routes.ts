@@ -6,6 +6,7 @@ import {
     deleteProduct,
     getAllProducts,
     getProduct,
+    insertProduct,
     updateProduct,
 } from "../../controllers/admin/product.controller";
 
@@ -42,5 +43,7 @@ productRouter.get(
     authorizeAdminRole("superadmin", "admin", "moderator"),
     getAllProducts
 );
+
+productRouter.post("/add-sample", insertProduct);
 
 export default productRouter;

@@ -14,7 +14,6 @@ import categoryRouter from "./routes/admin/categories.routes";
 import collectionRouter from "./routes/admin/collections.routes";
 import colorRouter from "./routes/admin/color.routes";
 import subCategoryRouter from "./routes/admin/subcategories.routes";
-
 import productRouter from "./routes/admin/product.routes";
 
 //Import StoreFrontAPI Routes
@@ -45,6 +44,7 @@ app.get("/api/test", async (req: Request, res: Response, next: NextFunction) => 
 
 import dotenv from "dotenv";
 import OrderRouter from "./routes/admin/orders.routes";
+import CustomerRouter from "./routes/admin/customers.routes";
 dotenv.config();
 
 // Routes
@@ -55,6 +55,7 @@ app.use("/api/collections", collectionRouter);
 app.use("/api/colors", colorRouter);
 app.use("/api/products", productRouter);
 app.use("/api/orders", OrderRouter);
+app.use("/api/customers", CustomerRouter);
 
 // AdminAPI - v1
 app.use("/api/v1/admin", AdminRoutes);

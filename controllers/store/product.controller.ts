@@ -128,7 +128,7 @@ export const getProductsForStoreFront = expressAsyncHandler(async (req, res, nex
                         published: 1,
                         stock: 1,
                         createdAt: 1,
-                        // rating: 1,
+                        ratings: 1,
                     },
                 },
             ],

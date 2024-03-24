@@ -2,8 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import expressAsyncHandler from "express-async-handler";
 import ErrorHandler from "../utils/ErrorHandler";
 import jwt, { JwtPayload, Secret } from "jsonwebtoken";
-import Admin, { IAdmin } from "../models/Admin.model";
-import { redis } from "../lib/redis";
+import Admin from "../models/Admin.model";
 import { IRequestAdminObject } from "../types/typings";
 
 // Check if admin is authenticated
@@ -70,7 +69,6 @@ export const authorizeAdminRole = (...roles: role[]) => {
     return expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
         const userId = req.admin?._id;
 
-        // let cacheData: string = (await redis.get(`admin-user:${userId}`)) as string;
         let cacheData = null;
 
         if (!cacheData) {

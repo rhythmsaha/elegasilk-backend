@@ -2,8 +2,10 @@ import expressAsyncHandler from "express-async-handler";
 import Product, { IProduct } from "../../models/Product.model";
 import ErrorHandler from "../../utils/ErrorHandler";
 import { ISortOrder } from "../../types/typings";
-import mongoose, { FilterQuery, PipelineStage } from "mongoose";
+import mongoose, { FilterQuery, Mongoose, PipelineStage } from "mongoose";
+import Color from "../../models/color.model";
 import splitQuery from "../../utils/splitQuery";
+import SAMPLE_PRODUCTS from "../../lib/SAMPLE_PRODUCTS";
 
 const checkBoolean = (value: any) => {
     return typeof value === "boolean";
@@ -454,4 +456,68 @@ export const getProductFilters = expressAsyncHandler(async (req, res, next) => {
     } catch (error: any) {
         res.status(500).json({ message: error.message });
     }
+});
+
+export const insertProduct = expressAsyncHandler(async (req, res, next) => {
+    const mprods = SAMPLE_PRODUCTS.map(async (product) => {
+        const { name, sku, description, price, discount, images, specs, attributes, collections, colors } = product;
+
+        let createFields: any = {};
+
+        if (name) createFields["name"] = name;
+        if (sku) createFields["sku"] = sku;
+        if (description) createFields["description"] = description;
+        if (price) createFields["MRP"] = price;
+        if (discount) createFields["discount"] = discount;
+        if (images?.length > 0) createFields["images"] = images;
+
+        if (collections && collections.length > 0) createFields["collections"] = collections;
+        if (colors?.length > 0) createFields["colors"] = colors;
+        if (attributes?.length > 0) {
+            const _attrs = attributes.map(({ category, subcategory }) => {
+                return {
+                    category: category,
+                    subcategory: subcategory,
+                };
+            });
+            createFields["attributes"] = _attrs;
+        }
+        createFields["stock"] = Math.floor(Math.random() * 200) + 1;
+        createFields["published"] = true;
+
+        if (specs && specs.length > 0) {
+            const _specs = specs.map(({ property, value }) => {
+                return {
+                    name: property,
+                    value: value,
+                };
+            });
+
+            createFields["specs"] = _specs;
+        }
+
+        // console.log(createFields["images"]);
+
+        Product.create(createFields);
+        // const newProduct = new Product(createFields);
+        // newProduct.save();
+
+        return createFields;
+    });
+
+    // Create new product
+    // const newProduct = await Product.create(createFields);
+
+    // create multple products
+    // const newProduct = await Product.insertMany(products);
+
+    // if (!newProduct) {
+    //     return next(new ErrorHandler("Failed to create new product", 500));
+    // }
+
+    // Send response
+    res.status(201).json({
+        success: true,
+        data: mprods.length,
+    });
 });
