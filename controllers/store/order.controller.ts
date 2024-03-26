@@ -59,7 +59,6 @@ export const createOrder = expressAsyncHandler(async (req: Request, res: Respons
 
             const returnUrl = `${YOUR_DOMAIN}/checkout/placed?orderId=${order.orderId}`;
             res.status(200).json({ message: "Order placed successfully", url: returnUrl });
-            return;
         } else if (paymentMethod === PaymentMethod.STRIPE) {
             const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] | undefined = _cart.products.map((item) => {
                 return {
@@ -108,8 +107,8 @@ export const createOrder = expressAsyncHandler(async (req: Request, res: Respons
             return next(new ErrorHandler("Invalid payment method", 400));
         }
 
-        // cart.products = [];
-        // cart.calculateTotal();
+        cart.products = [];
+        cart.calculateTotal();
     } catch (error: any) {
         return next(new ErrorHandler(error.message, 500));
     }

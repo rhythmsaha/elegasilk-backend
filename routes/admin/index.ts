@@ -6,7 +6,8 @@ import collectionRouter from "./collections.routes";
 import colorRouter from "./color.routes";
 import productRouter from "./product.routes";
 import OrderRouter from "./orders.routes";
-import CustomerRouter from "../store/customer.routes";
+import CustomerRouter from "./customers.routes";
+import DashboardRouter from "./dashboard.routes";
 
 const AdminRoutes = express.Router();
 
@@ -18,5 +19,6 @@ AdminRoutes.use("/colors", colorRouter);
 AdminRoutes.use("/products", productRouter);
 AdminRoutes.use("/orders", OrderRouter);
 AdminRoutes.use("/customers", CustomerRouter);
+AdminRoutes.use("/dashboard", DashboardRouter);
 
 export default AdminRoutes;

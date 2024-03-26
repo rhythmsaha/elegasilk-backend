@@ -1,7 +1,7 @@
 import expressAsyncHandler from "express-async-handler";
 import ErrorHandler from "../../utils/ErrorHandler";
 import Product, { IProduct } from "../../models/Product.model";
-import Cart, { ICartSchema, IPopulatedCart } from "../../models/store/Cart.model";
+import Cart, { IPopulatedCart } from "../../models/store/Cart.model";
 
 /**
  * Adds an item to the cart for a logged-in user.

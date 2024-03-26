@@ -330,15 +330,3 @@ function structureSingleOrder(order: any) {
         updatedAt: order.get("updatedAt"),
     };
 }
-
-// | "PENDING"
-//         | "PLACED"
-//         | "FAILED"
-//         | "CANCELLED"
-//         | "SHIPPED"
-//         | "DELIVERED"
-//         | "RETURN_REQUESTED"
-//         | "RETURNED"
-//         | "REFUNDED"
-//         | "EXCHANGE_REQUESTED"
-//         | "EXCHANGED";

@@ -4,6 +4,7 @@ import Order from "../../models/store/Order.model";
 
 export const salesReport = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0);
     const yesterday = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1);
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
