@@ -1,0 +1,26 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = __importDefault(require("express"));
+const admin_routes_1 = __importDefault(require("./admin.routes"));
+const categories_routes_1 = __importDefault(require("./categories.routes"));
+const subcategories_routes_1 = __importDefault(require("./subcategories.routes"));
+const collections_routes_1 = __importDefault(require("./collections.routes"));
+const color_routes_1 = __importDefault(require("./color.routes"));
+const product_routes_1 = __importDefault(require("./product.routes"));
+const orders_routes_1 = __importDefault(require("./orders.routes"));
+const customers_routes_1 = __importDefault(require("./customers.routes"));
+const dashboard_routes_1 = __importDefault(require("./dashboard.routes"));
+const AdminRoutes = express_1.default.Router();
+AdminRoutes.use("/user", admin_routes_1.default);
+AdminRoutes.use("/categories", categories_routes_1.default);
+AdminRoutes.use("/subcategories", subcategories_routes_1.default);
+AdminRoutes.use("/collections", collections_routes_1.default);
+AdminRoutes.use("/colors", color_routes_1.default);
+AdminRoutes.use("/products", product_routes_1.default);
+AdminRoutes.use("/orders", orders_routes_1.default);
+AdminRoutes.use("/customers", customers_routes_1.default);
+AdminRoutes.use("/dashboard", dashboard_routes_1.default);
+exports.default = AdminRoutes;
