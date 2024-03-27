@@ -9,6 +9,7 @@ import generateOTP from "../../utils/generateOtp";
 import VerificationCode from "../../models/verificationcode.model";
 import crypto from "crypto";
 import { sendMail } from "../../lib/mail";
+import { verifyAccount } from "../../mails/CustomerAccount";
 
 const checkRequestPermission = (id: string, req: Request, res: Response, next: NextFunction) => {
     if (id !== req.customer?._id) {
@@ -61,9 +62,17 @@ export const createCustomer = asyncHandler(async (req: Request, res: Response, n
         }
 
         // Send verification email
-        const verificationLink = `http://localhost:3000/verifyaccount?token=${verificationToken.token}&customerId=${newCustomer._id}&tokenID=${verificationToken._id}`;
+        const Host = process.env.STOREFRONT || "http://localhost:3000";
+        const verificationLink = `${Host}/verifyaccount?token=${verificationToken.token}&customerId=${newCustomer._id}&tokenID=${verificationToken._id}`;
 
-        console.log(verificationLink);
+        const mailOptions = {
+            from: "Elegasilk <elegasilk@gmail.com>",
+            to: email,
+            subject: "Verify Your Account",
+            text: `Hey ${firstName}, Thank you for signing up. Please verify your email to activate your account. Click the link below to verify your account. ${verificationLink} If you did not sign up for this account, you can ignore this email and the account will remain inactive. Best, Elegasilk`,
+        };
+
+        sendMail(mailOptions);
 
         res.status(201).json({
             success: true,
@@ -115,9 +124,17 @@ export const resendVerificationLink = asyncHandler(async (req: Request, res: Res
     }
 
     // Send verification email
-    const verificationLink = `http://localhost:3000/verifyaccount?token=${token}&customerId=${customer._id}&tokenID=${saveToken._id}`;
+    const Host = process.env.STOREFRONT || "http://localhost:3000";
+    const verificationLink = `${Host}/verifyaccount?token=${token}&customerId=${customer._id}&tokenID=${saveToken._id}`;
 
-    console.log(verificationLink);
+    const mailOptions = {
+        from: "Elegasilk <elegasilk@gmail.com>",
+        to: email,
+        subject: "Verify Your Account",
+        text: `Hey ${customer.firstName}, Thank you for signing up. Please verify your email to activate your account. Click the link below to verify your account. ${verificationLink} If you did not sign up for this account, you can ignore this email and the account will remain inactive. Best, Elegasilk`,
+    };
+
+    sendMail(mailOptions);
 
     res.status(201).json({
         success: true,
@@ -488,6 +505,8 @@ export const verifyCustomerEmail = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Failed to Update Email Address", 404));
     }
 
+    verificationCode.deleteOne();
+
     const user = customer.getCustomerProfile();
 
     res.status(200).json({
@@ -527,9 +546,17 @@ export const forgetPassword = asyncHandler(async (req, res, next) => {
         return next(new ErrorHandler("Something went wrong!", 400));
     }
 
-    const resetLink = `http://localhost:3000/resetpassword?customerId=${customer._id}&id=${verificationCode._id}&token=${verificationCode.code}`;
+    const Host = process.env.STOREFRONT || "http://localhost:3000";
+    const resetLink = `${Host}/reset-password/reset?customerId=${customer._id}&id=${verificationCode._id}&token=${verificationCode.code}`;
 
-    console.log(resetLink);
+    const mailOptions = {
+        from: "Elegasilk <elegasilk@gmail.com>",
+        to: email,
+        subject: "Reset Your Password",
+        text: `Click the link below to reset your password. ${resetLink} If you did not request a password reset, you can ignore this email and your password will remain unchanged. Best, Elegasilk`,
+    };
+
+    sendMail(mailOptions);
 
     res.status(200).json({
         success: true,
@@ -571,7 +598,13 @@ export const resetPassword = asyncHandler(async (req, res, next) => {
     }
 
     customer.hashed_password = password;
-    await customer.save();
+    const saveCustomer = await customer.save();
+
+    if (!saveCustomer) {
+        return next(new ErrorHandler("Password reset failed", 400));
+    }
+
+    verificationCode.deleteOne();
 
     res.status(200).json({
         success: true,

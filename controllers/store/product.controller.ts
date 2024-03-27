@@ -75,7 +75,9 @@ export const getProductsForStoreFront = expressAsyncHandler(async (req, res, nex
 
     // if search query exists update filters object
     if (search) {
+        console.log("Search:", search); // Debug line
         filters["name"] = { $regex: new RegExp(search, "i") };
+        console.log("Filters:", filters); // Debug line
     }
 
     if (attributesQuery) {
