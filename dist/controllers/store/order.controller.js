@@ -30,7 +30,7 @@ var PaymentMethod;
     PaymentMethod["STRIPE"] = "STRIPE";
 })(PaymentMethod || (PaymentMethod = {}));
 const stripe = new stripe_1.default(Stripe_SECRET);
-const YOUR_DOMAIN = "http://localhost:3000";
+const YOUR_DOMAIN = process.env.STOREFRONT;
 exports.createOrder = (0, express_async_handler_1.default)((req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
     if (!((_a = req.customer) === null || _a === void 0 ? void 0 : _a._id)) {

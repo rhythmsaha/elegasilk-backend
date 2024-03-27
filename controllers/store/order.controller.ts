@@ -19,7 +19,7 @@ enum PaymentMethod {
 
 const stripe = new Stripe(Stripe_SECRET);
 
-const YOUR_DOMAIN = "http://localhost:3000";
+const YOUR_DOMAIN = process.env.STOREFRONT;
 
 export const createOrder = expressAsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     if (!req.customer?._id) {
