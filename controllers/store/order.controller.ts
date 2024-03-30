@@ -240,17 +240,18 @@ export const getOrders = expressAsyncHandler(async (req: Request, res: Response,
                     },
                 },
             ],
-            totalCount: [{ $count: "count" }],
+            totalCount: [
+                {
+                    $match: {
+                        userId: new mongoose.Types.ObjectId(cutomerId),
+                    },
+                },
+                { $count: "count" },
+            ],
         },
     });
 
     try {
-        // const orders = await Order.find({ userId: cutomerId })
-        //     .sort({ createdAt: -1 })
-        //     .skip(startFrom)
-        //     .limit(endAt)
-        //     .select("-sessionId -address -items.productId.discount -items.productId.stock -items.totalPrice -__v");
-
         const orders = await Order.aggregate(pipeline);
         if (!orders) return next(new ErrorHandler("No Orders Found", 404));
 
@@ -259,6 +260,8 @@ export const getOrders = expressAsyncHandler(async (req: Request, res: Response,
         const _Orders = orders[0].orders;
         const maxPage = Math.ceil(totalCount / pageSize);
         let currentPage = page;
+
+        console.log(totalCount);
 
         if (currentPage > maxPage) {
             currentPage = maxPage;
