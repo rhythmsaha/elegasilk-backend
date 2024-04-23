@@ -3,7 +3,6 @@ import Product, { IProduct } from "../../models/Product.model";
 import ErrorHandler from "../../utils/ErrorHandler";
 import { ISortOrder } from "../../types/typings";
 import mongoose, { FilterQuery, Mongoose, PipelineStage } from "mongoose";
-import Color from "../../models/color.model";
 import splitQuery from "../../utils/splitQuery";
 import SAMPLE_PRODUCTS from "../../lib/SAMPLE_PRODUCTS";
 

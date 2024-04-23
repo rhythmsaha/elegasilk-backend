@@ -1,0 +1,16 @@
+version: "3"
+services:
+    elegasilk-backend:
+        environment:
+            - NODE_ENV=production
+        build:
+            context: .
+            dockerfile: Dockerfile.dev
+        volumes:
+            - .:/app
+        container_name: elegasilk-backend
+        expose:
+            - "8000"
+        ports:
+            - "8000:8000"
+        command: npm start
