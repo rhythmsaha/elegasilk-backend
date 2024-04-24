@@ -24,7 +24,6 @@ import { Secret } from "jsonwebtoken";
 require("dotenv").config();
 
 const adminRouter = express.Router();
-
 const adminSecret = process.env.ADMIN_ACCESS_TOKEN_JWT_SECRET as Secret;
 
 /**
@@ -168,12 +167,7 @@ adminRouter.delete(
  * @param {function} middleware - Middleware function
  * @param {function} controller - Controller function
  */
-adminRouter.get(
-    "/users",
-    authorizeAccessToken(adminSecret),
-    authorizeAdminRole("superadmin", "admin"),
-    getAllAdmins
-);
+adminRouter.get("/users", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), getAllAdmins);
 
 /**
  * Route for getting a single admin user.
@@ -184,11 +178,6 @@ adminRouter.get(
  * @param {function} middleware - Middleware function
  * @param {function} controller - Controller function
  */
-adminRouter.get(
-    "/user/:id",
-    authorizeAccessToken(adminSecret),
-    authorizeAdminRole("superadmin", "admin"),
-    getAdmin
-);
+adminRouter.get("/user/:id", authorizeAccessToken(adminSecret), authorizeAdminRole("superadmin", "admin"), getAdmin);
 
 export default adminRouter;

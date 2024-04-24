@@ -36,7 +36,7 @@ export const authorizeAccessToken = (secret: Secret, customer = false) => {
 
             next();
         } catch (error: any) {
-            return next(new ErrorHandler("Please login to access this resource", 401));
+            throw new ErrorHandler("Please login to access this resource", 401);
         }
     });
 };

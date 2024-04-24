@@ -3,8 +3,26 @@ import { JwtPayload } from "jsonwebtoken";
 import { IAdmin } from "../models/Admin.model";
 import { IProduct } from "../models/Product.model";
 
-interface ICreateAdminInput extends IAdmin {
+interface ICreateAdminInput {
+    firstName: string;
+    lastName: string;
+    username: string;
+    email?: string;
     password: string;
+    role: "moderator" | "admin" | "superadmin";
+    status: boolean;
+    avatar?: string;
+}
+
+interface IUpdateAdminInput {
+    firstName?: string;
+    lastName?: string;
+    username?: string;
+    email?: string;
+    password?: string;
+    role?: "moderator" | "admin" | "superadmin";
+    status?: boolean;
+    avatar?: string;
 }
 
 interface ILoginAdminInput {
@@ -18,7 +36,7 @@ export interface IRequestAdminObject {
     lastName?: string;
     username?: string;
     email?: string;
-    role?: "moderator" | "admin" | "superadmin" | "guest";
+    role?: "moderator" | "admin" | "superadmin";
     status?: boolean;
     avatar?: string;
 }

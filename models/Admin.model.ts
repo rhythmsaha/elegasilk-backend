@@ -9,7 +9,7 @@ export interface IAdmin extends Document {
     username: string;
     email?: string;
     hashed_password: string;
-    role: "moderator" | "admin" | "superadmin" | "guest";
+    role: "moderator" | "admin" | "superadmin";
     status: boolean;
     avatar?: string;
     createdAt?: Date;
@@ -96,7 +96,9 @@ AdminSchema.pre<IAdmin & { salt?: string }>("save", async function (next) {
 
 // Compare user password with hashed password in database
 AdminSchema.methods.comparePassword = async function (enteredPassword: string) {
-    const hashedPassword = await crypto.pbkdf2Sync(enteredPassword, process.env.PASSWORD_HASH_SALT!, 1000, 64, "sha512").toString("hex");
+    const hashedPassword = await crypto
+        .pbkdf2Sync(enteredPassword, process.env.PASSWORD_HASH_SALT!, 1000, 64, "sha512")
+        .toString("hex");
     return this.hashed_password === hashedPassword;
 };
 
