@@ -1,7 +1,7 @@
 import asyncHandler from "express-async-handler";
-import Admin, { IAdmin } from "../../models/Admin.model";
+import { IAdmin } from "../../models/Admin.model";
 import ErrorHandler from "../../utils/ErrorHandler";
-import AdminService from "../../services/admin/AdminService";
+import AdminService from "../../services/AdminService";
 import { Request, Response, NextFunction } from "express";
 import { ICreateAdminInput, ILoginAdminInput } from "../../types/typings";
 
@@ -367,43 +367,24 @@ export const deleteAdmin = asyncHandler(async (req: Request, res: Response, next
 export const getAllAdmins = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const requestedUserRole = req.admin?.role;
 
-    const users = await Admin.find();
-    if (!users) return next(new ErrorHandler("Something went wrong", 500));
-    if (users.length === 0) return next(new ErrorHandler("No users found", 404));
-
-    let usersArr = [] as IAdmin[];
-
     // only super admin can get all admins
-    if (requestedUserRole === "superadmin") usersArr = users;
+    if (requestedUserRole === "superadmin") {
+        const users = await AdminService.getAllUsers();
 
-    // admins are not allowed to get super admins but get all other admins and moderators
-    if (requestedUserRole === "admin") {
-        const requestedUser = users.find((user) => user._id.toString() === req.admin?._id.toString());
-        usersArr = users.filter((user) => user.role !== "superadmin" && user.role !== "admin");
-        usersArr.push(requestedUser as IAdmin);
+        res.status(200).json({
+            success: true,
+            users,
+        });
+    } else if (requestedUserRole === "admin") {
+        const users = await AdminService.getModerators();
+
+        res.status(200).json({
+            success: true,
+            users,
+        });
+    } else {
+        throw new ErrorHandler("Access Denied!", 403);
     }
-
-    const formattedUsers = usersArr.map((user) => {
-        return {
-            _id: user._id,
-            fullName: `${user.firstName} ${user.lastName}`,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            username: user.username,
-            email: user.email,
-            role: user.role,
-            avatar: user.avatar,
-            status: user.status,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-        };
-    });
-
-    // send response
-    res.status(200).json({
-        success: true,
-        users: formattedUsers,
-    });
 });
 
 /**

@@ -1,5 +1,5 @@
-import { redis } from "../../lib/redis";
-import ErrorHandler from "../../utils/ErrorHandler";
+import { redis } from "../lib/redis";
+import ErrorHandler from "../utils/ErrorHandler";
 
 export interface IVerifyUserIdSessionData {
     userId: string;

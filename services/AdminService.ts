@@ -1,9 +1,9 @@
 import validator from "validator";
-import Admin, { IAdmin } from "../../models/Admin.model";
-import { ICreateAdminInput, IUpdateAdminInput } from "../../types/typings";
-import ErrorHandler from "../../utils/ErrorHandler";
-import { validateStrongPassword } from "../../utils/validate";
-import verificationService from "../verification/VerificationService";
+import Admin, { IAdmin } from "../models/Admin.model";
+import { ICreateAdminInput, IUpdateAdminInput } from "../types/typings";
+import ErrorHandler from "../utils/ErrorHandler";
+import { validateStrongPassword } from "../utils/validate";
+import verificationService from "./VerificationService";
 
 interface AdminExistsProps {
     username: string;
@@ -19,6 +19,9 @@ class AdminService {
     role: IAdmin["role"];
     avatar: IAdmin["avatar"];
     status: IAdmin["status"];
+    createdAt?: IAdmin["createdAt"];
+    updatedAt?: IAdmin["updatedAt"];
+
     static accessToken: string;
 
     constructor(
@@ -170,6 +173,22 @@ class AdminService {
         return session;
     }
 
+    private get fullProfile() {
+        return {
+            _id: this._id,
+            fullName: `${this.firstName} ${this.lastName}`,
+            firstName: this.firstName,
+            lastName: this.lastName,
+            username: this.username,
+            email: this.email,
+            role: this.role,
+            avatar: this.avatar,
+            status: this.status,
+            createdAt: this.createdAt,
+            updatedAt: this.updatedAt,
+        };
+    }
+
     get profile() {
         return this.createProfile();
     }
@@ -253,6 +272,20 @@ class AdminService {
         const admin = await this.getAdminById(id);
         const user = this.from(admin).profile;
         return user;
+    }
+
+    public static async getAllUsers() {
+        const admins = await Admin.find();
+        if (!admins) throw new ErrorHandler("No admin found", 404);
+        const users = admins.map((admin) => this.from(admin).fullProfile);
+        return users;
+    }
+
+    public static async getModerators() {
+        const users = await Admin.find({ role: "moderator" });
+        if (!users) throw new ErrorHandler("No moderator found", 404);
+        const moderators = users.map((admin) => this.from(admin).fullProfile);
+        return moderators;
     }
 }
 

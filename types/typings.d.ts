@@ -30,6 +30,22 @@ interface ILoginAdminInput {
     password: string;
 }
 
+interface ICreateCategoryInput {
+    name: string;
+    description?: string;
+    image?: string;
+    status?: boolean;
+}
+
+interface ICategoryFetchOptions {
+    search: string;
+    page: number;
+    limit: number;
+    sort: ICategorySortOptions;
+}
+
+export type ICategorySortOptions = ("name" | "status" | "createdAt" | "updatedAt") | undefined;
+
 export interface IRequestAdminObject {
     _id: string;
     firstName?: string;
