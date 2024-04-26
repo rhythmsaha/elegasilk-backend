@@ -1,225 +1,78 @@
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
-import ErrorHandler from "../../utils/ErrorHandler";
-import validator from "validator";
-import SubCategory, { ISubCategory } from "../../models/subCategory.model";
-import { FilterQuery, SortOrder } from "mongoose";
-import Category from "../../models/category.model";
+import SubCategoryService from "../../services/SubCategoryService";
+import CategoryService from "../../services/CategoryService";
 
-/**
- * Creates a new subcategory.
- * @function
- * @async
- * @param {Request} req - Express request object.
- * @param {Response} res - Express response object.
- * @param {NextFunction} next - Express next function.
- * @returns {Promise<void>} - Promise that resolves with no value.
- * @throws {ErrorHandler} - Throws an error if there is a validation error or if the subcategory creation fails.
- */
-export const createSubCategory = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
-        const { name, description, image, status, category } = req.body;
+export const createSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { name, description, image, status, category } = req.body;
 
-        if (!category) {
-            return next(new ErrorHandler("Please provide a category id", 400));
-        }
+    const subcategory = await SubCategoryService.create({
+        name,
+        description,
+        image,
+        status,
+        category,
+    });
 
-        // Name validation handled by mongoose
-        // Description validation handled by mongoose
-        // Image validation handled by mongoose
+    res.status(201).json({
+        success: true,
+        data: subcategory,
+    });
+});
 
-        // Status validation
-        if (status) {
-            if (typeof status !== "boolean") {
-                return next(new ErrorHandler("Status must be a boolean value", 400));
-            }
-        }
+export const updateSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
+    const { name, description, image, status, category } = req.body;
 
-        // Category validation
-        if (category) {
-            if (!validator.isMongoId(category)) {
-                return next(new ErrorHandler("Please provide a valid category id", 400));
-            }
-        }
+    const updatedSubCategory = await SubCategoryService.update(id, {
+        name,
+        description,
+        image,
+        status,
+        category,
+    });
 
-        // Create new sub category
-        const newSubCategory = await SubCategory.create({
-            name,
-            description,
-            image,
-            status,
-            category,
-        });
+    res.status(200).json({
+        success: true,
+        data: updatedSubCategory,
+    });
+});
 
-        if (!newSubCategory) {
-            return next(new ErrorHandler("Failed to create new sub category", 500));
-        }
+export const deleteSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
 
-        // Send response
-        res.status(201).json({
-            success: true,
-            data: newSubCategory,
-        });
-    }
-);
+    const deletedSubCategory = await SubCategoryService.delete(id);
 
-/**
- * Update a subcategory by ID
- * @param req - Express Request object
- * @param res - Express Response object
- * @param next - Express NextFunction object
- * @returns Promise<void>
- */
-export const updateSubCategory = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
-        const { id } = req.params;
-        const { name, description, image, status, category } = req.body;
+    res.status(200).json({
+        success: true,
+        data: deletedSubCategory,
+    });
+});
 
-        const data = {
-            name,
-            description,
-            image,
-            status,
-        } as any;
+export const getAllSubCategories = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const categoryId = req.query.category as string;
 
-        // Name validation handled by mongoose
+    const category = await CategoryService.findCategoryBySlug(categoryId);
 
-        // Description validation handled by mongoose
+    const subCategories = await SubCategoryService.getSubCategoriesByCategoryId(category._id);
 
-        // Image validation handled by mongoose
+    res.status(200).json({
+        success: true,
+        category: {
+            name: category.name,
+            slug: category.slug,
+        },
+        data: subCategories,
+    });
+});
 
-        // Status validation
-        if (status) {
-            if (typeof status !== "boolean") {
-                return next(new ErrorHandler("Status must be a boolean value", 400));
-            }
-        }
+export const getSubCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const { id } = req.params;
 
-        // Category validation
-        if (category) {
-            if (!validator.isMongoId(category)) {
-                return next(new ErrorHandler("Please provide a valid category id", 400));
-            }
+    const subCategory = await SubCategoryService.getWithCategory(id);
 
-            data.category = category;
-        }
-
-        // Update sub category
-        const updatedSubCategory = await SubCategory.findByIdAndUpdate(
-            id,
-            { ...data },
-            { new: true }
-        );
-
-        if (!updatedSubCategory) {
-            return next(new ErrorHandler("Failed to update sub category", 500));
-        }
-
-        // Send response
-        res.status(200).json({
-            success: true,
-            data: updatedSubCategory,
-        });
-    }
-);
-
-/**
- * Deletes a sub category by ID.
- * @param req - The request object.
- * @param res - The response object.
- * @param next - The next middleware function.
- * @returns A JSON response indicating success and the deleted sub category data.
- */
-export const deleteSubCategory = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
-        const { id } = req.params;
-
-        // Delete sub category
-        const deletedSubCategory = await SubCategory.findByIdAndDelete(id);
-
-        if (!deletedSubCategory) {
-            return next(new ErrorHandler("Failed to delete sub category", 500));
-        }
-
-        // Send response
-        res.status(200).json({
-            success: true,
-            data: deletedSubCategory,
-        });
-    }
-);
-
-/**
- * Get all sub categories
- * @route GET /api/v1/sub-categories
- * @param req - The request object
- * @param res - The response object
- * @param next - The next middleware function
- * @returns Returns a JSON response containing an array of sub categories
- * @throws {ErrorHandler} Will throw an error if failed to get all sub categories
- */
-export const getAllSubCategories = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
-        // check if category query exists
-        const category = req.query.category as string;
-
-        const findCategory = await Category.findOne({ slug: category });
-
-        if (!findCategory) {
-            return next(new ErrorHandler("Please provide a valid category", 400));
-        }
-
-        // if search query exists
-        let filters = {} as FilterQuery<ISubCategory>;
-        let populate: any = {};
-
-        if (category) {
-            filters["category"] = findCategory._id;
-            populate = { path: "category", select: "name slug" };
-        }
-
-        // Get all sub categories
-        const subCategories = await SubCategory.find(filters).populate({ ...populate });
-
-        if (!subCategories) {
-            return next(new ErrorHandler("Failed to get all sub categories", 500));
-        }
-
-        // Send response
-        res.status(200).json({
-            success: true,
-            category: {
-                name: findCategory.name,
-                slug: findCategory.slug,
-            },
-            data: subCategories,
-        });
-    }
-);
-
-/**
- * Retrieves a subcategory by ID and populates its category field with name and slug.
- * @param req - The request object.
- * @param res - The response object.
- * @param next - The next middleware function.
- * @returns A JSON response with the subcategory data.
- * @throws {ErrorHandler} If the subcategory cannot be found.
- */
-export const getSubCategory = asyncHandler(
-    async (req: Request, res: Response, next: NextFunction) => {
-        const { id } = req.params;
-
-        // Get sub category
-        const subCategory = await SubCategory.findById(id).populate("category", "name slug");
-
-        if (!subCategory) {
-            return next(new ErrorHandler("Failed to get sub category", 500));
-        }
-
-        // Send response
-        res.status(200).json({
-            success: true,
-            data: subCategory,
-        });
-    }
-);
+    res.status(200).json({
+        success: true,
+        data: subCategory,
+    });
+});

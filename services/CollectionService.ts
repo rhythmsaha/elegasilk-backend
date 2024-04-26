@@ -144,9 +144,7 @@ class CollectionService {
     public static async getCollections(options: ICollectionFetchOptions) {
         const { filters, pipeline, sortCondition } = this.validateGetOptions(options);
 
-        if (filters) {
-            pipeline.push({ $match: filters });
-        }
+        if (filters) pipeline.push({ $match: filters });
 
         if (sortCondition) {
             pipeline.push({

@@ -16,6 +16,30 @@ class CategoryService {
         }
     }
 
+    private static validateCategoryOptions(options: ICategoryFetchOptions) {
+        let filters = {} as FilterQuery<ICategory>;
+        let sortBy: string | { [key: string]: SortOrder | { $meta: any } } | [string, SortOrder][] | null | undefined;
+
+        if (options.search) {
+            filters["$text"] = { $search: options.search };
+        }
+
+        if (options.page && options.limit) {
+            filters["$and"] = [{ status: true }];
+            sortBy = { createdAt: -1 };
+        }
+
+        if (options.sort) {
+            if (options.sort === "name" || options.sort === "status") {
+                sortBy = { [options.sort]: "ascending" };
+            } else {
+                sortBy = { [options.sort]: "descending" };
+            }
+        }
+
+        return { filters, sortBy };
+    }
+
     private static async findCategoryById(id: string) {
         const category = await Category.findById(id);
         if (!category) throw new ErrorHandler("Category not found", 404);
@@ -61,30 +85,6 @@ class CategoryService {
         const deletedCategory = await category.deleteOne();
         if (!deletedCategory) throw new ErrorHandler("Failed to delete category", 500);
         return deletedCategory;
-    }
-
-    private static validateCategoryOptions(options: ICategoryFetchOptions) {
-        let filters = {} as FilterQuery<ICategory>;
-        let sortBy: string | { [key: string]: SortOrder | { $meta: any } } | [string, SortOrder][] | null | undefined;
-
-        if (options.search) {
-            filters["$text"] = { $search: options.search };
-        }
-
-        if (options.page && options.limit) {
-            filters["$and"] = [{ status: true }];
-            sortBy = { createdAt: -1 };
-        }
-
-        if (options.sort) {
-            if (options.sort === "name" || options.sort === "status") {
-                sortBy = { [options.sort]: "ascending" };
-            } else {
-                sortBy = { [options.sort]: "descending" };
-            }
-        }
-
-        return { filters, sortBy };
     }
 
     public static async getAllCategoriesWithFilter(options: ICategoryFetchOptions) {

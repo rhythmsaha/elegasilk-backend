@@ -53,6 +53,12 @@ interface ICollectionFetchOptions extends ICategoryFetchOptions {
 
 export type ICategorySortOptions = ("name" | "status" | "createdAt" | "updatedAt") | undefined;
 
+interface IColorOptions {
+    name: string;
+    hex: string;
+    status: boolean;
+}
+
 export interface IRequestAdminObject {
     _id: string;
     firstName?: string;
