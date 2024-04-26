@@ -44,6 +44,13 @@ interface ICategoryFetchOptions {
     sort: ICategorySortOptions;
 }
 
+interface ICollectionFetchOptions extends ICategoryFetchOptions {
+    page?: number;
+    limit?: number;
+    sortOrder?: ISortOrder;
+    status?: string;
+}
+
 export type ICategorySortOptions = ("name" | "status" | "createdAt" | "updatedAt") | undefined;
 
 export interface IRequestAdminObject {

@@ -3,17 +3,7 @@ import { ICategorySortOptions } from "../../types/typings";
 import asyncHandler from "express-async-handler";
 import CategoryService from "../../services/CategoryService";
 
-/**
- * Creates a new category.
- * @function
- * @async
- * @param {Request} req - Express request object.
- * @param {Response} res - Express response object.
- * @param {NextFunction} next - Express next function.
- * @returns {Promise<void>} - Promise that resolves with no value.
- * @throws {ErrorHandler} - If there is an error creating the category.
- */
-export const createCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const createCategory = asyncHandler(async (req: Request, res: Response) => {
     const { name, description, image, status } = req.body;
 
     const category = await CategoryService.createCategory({ name, description, image, status });
@@ -24,14 +14,7 @@ export const createCategory = asyncHandler(async (req: Request, res: Response, n
     });
 });
 
-/**
- * Updates a category by ID.
- * @param req - The request object.
- * @param res - The response object.
- * @param next - The next middleware function.
- * @returns A JSON response indicating success or failure and the updated category data.
- */
-export const updateCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const updateCategory = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, description, image, status } = req.body;
 
@@ -44,14 +27,7 @@ export const updateCategory = asyncHandler(async (req: Request, res: Response, n
     });
 });
 
-/**
- * Deletes a category by ID.
- * @param req - The request object.
- * @param res - The response object.
- * @param next - The next middleware function.
- * @returns A JSON response indicating success or failure.
- */
-export const deleteCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const deleteCategory = asyncHandler(async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const deletedCategory = await CategoryService.deleteCategory(id);
@@ -62,17 +38,7 @@ export const deleteCategory = asyncHandler(async (req: Request, res: Response, n
     });
 });
 
-/**
- * Get all categories with optional search, pagination, and sorting.
- * @function
- * @async
- * @param {Request} req - Express request object.
- * @param {Response} res - Express response object.
- * @param {NextFunction} next - Express next function.
- * @returns {Promise<void>} - Promise that resolves with the response object.
- * @throws {ErrorHandler} - Throws an error if there is a query error or if the categories cannot be retrieved.
- */
-export const getAllCategories = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getAllCategories = asyncHandler(async (req: Request, res: Response) => {
     const search = req.query.search as string;
     const shouldPopulate = req.query.populate === "true";
 
@@ -107,15 +73,7 @@ export const getAllCategories = asyncHandler(async (req: Request, res: Response,
     }
 });
 
-/**
- * Retrieves a category by its slug.
- * @param req - The request object.
- * @param res - The response object.
- * @param next - The next middleware function.
- * @returns A JSON object containing the category data.
- * @throws {ErrorHandler} If the category is not found.
- */
-export const getCategory = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+export const getCategory = asyncHandler(async (req: Request, res: Response) => {
     const { slug } = req.params;
     const shouldPopulate = req.query.subcategories === "true";
 
