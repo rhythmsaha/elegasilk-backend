@@ -1,12 +1,7 @@
-import asyncHandler from "express-async-handler";
-import Category, { ICategory } from "../../models/category.model";
 import { Request, Response, NextFunction } from "express";
-import ErrorHandler from "../../utils/ErrorHandler";
-import validator from "validator";
-import { FilterQuery, SortOrder } from "mongoose";
-import SubCategory from "../../models/subCategory.model";
-import CategoryService from "../../services/CategoryService";
 import { ICategorySortOptions } from "../../types/typings";
+import asyncHandler from "express-async-handler";
+import CategoryService from "../../services/CategoryService";
 
 /**
  * Creates a new category.
