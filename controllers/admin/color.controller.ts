@@ -1,9 +1,5 @@
 import asyncHandler from "express-async-handler";
-import { Request, Response, NextFunction } from "express";
-import validator from "validator";
-import ErrorHandler from "../../utils/ErrorHandler";
-import { FilterQuery, SortOrder } from "mongoose";
-import Color, { IColor } from "../../models/color.model";
+import { Request, Response } from "express";
 import ColorService from "../../services/ColorService";
 
 export const createColor = asyncHandler(async (req: Request, res: Response) => {
