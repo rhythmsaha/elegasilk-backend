@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response } from "express";
 import { ICategorySortOptions } from "../../types/typings";
 import asyncHandler from "express-async-handler";
 import CategoryService from "../../services/CategoryService";
