@@ -1,9 +1,7 @@
 import validator from "validator";
 import ErrorHandler from "../utils/ErrorHandler";
 import Color from "../models/color.model";
-import { ICategorySortOptions, IColorOptions } from "../types/typings";
-import { FilterQuery, SortOrder } from "mongoose";
-import { ICategory } from "../models/category.model";
+import { IColorOptions } from "../types/typings";
 
 class ColorService {
     private static validateColorInput({ hex, name, status }: IColorOptions) {

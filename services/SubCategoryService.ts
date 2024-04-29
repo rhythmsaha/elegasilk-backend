@@ -4,15 +4,12 @@ import SubCategory from "../models/subCategory.model";
 
 class SubCategoryService {
     private static validateSubCategoryOptions(options: ISubCategoryOptions) {
-        const { name, description, image, status, category } = options;
+        const { name, image, status, category } = options;
         if (!name) throw new ErrorHandler("Please provide a name", 400);
 
-        if (!category && !validator.isMongoId(category)) throw new ErrorHandler("Please provide a category id", 400);
+        if (category && !validator.isMongoId(category)) throw new ErrorHandler("Please provide a category id", 400);
 
         if (status && typeof status !== "boolean") throw new ErrorHandler("Status must be a boolean value", 400);
-
-        if (description && !validator.isAlpha(description))
-            throw new ErrorHandler("Please provide a valid description", 400);
 
         if (image && !validator.isURL(image)) throw new ErrorHandler("Please provide a valid image URL", 400);
     }
@@ -34,6 +31,7 @@ class SubCategoryService {
 
     public static async update(id: string, options: ISubCategoryOptions) {
         this.validateSubCategoryOptions(options);
+
         const { name, description, image, status, category } = options;
         const subcategory = await SubCategory.findByIdAndUpdate(
             id,
@@ -56,8 +54,6 @@ class SubCategoryService {
     }
 
     public static async delete(id: string) {
-        if (!validator.isMongoId(id)) throw new ErrorHandler("Please provide a valid sub category id", 400);
-
         const deletedSubCategory = await SubCategory.findByIdAndDelete(id);
 
         if (!deletedSubCategory) throw new ErrorHandler("Failed to delete sub category", 500);
@@ -66,8 +62,6 @@ class SubCategoryService {
     }
 
     public static async getByID(id: string) {
-        if (!validator.isMongoId(id)) throw new ErrorHandler("Please provide a valid sub category id", 400);
-
         const subcategory = await SubCategory.findById(id);
 
         if (!subcategory) throw new ErrorHandler("Sub category not found", 404);
@@ -87,7 +81,8 @@ class SubCategoryService {
     }
 
     public static async getSubCategoriesByCategoryId(categoryId: string) {
-        if (!validator.isMongoId(categoryId)) throw new ErrorHandler("Please provide a valid category id", 400);
+        if (!validator.isMongoId(categoryId.toString()))
+            throw new ErrorHandler("Please provide a valid category id", 400);
 
         const subCategories = await SubCategory.find({ category: categoryId }).populate("category", "name slug");
 

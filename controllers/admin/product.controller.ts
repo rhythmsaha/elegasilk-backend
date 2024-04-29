@@ -1,18 +1,15 @@
 import expressAsyncHandler from "express-async-handler";
-import Product, { IProduct } from "../../models/Product.model";
+import Product from "../../models/Product.model";
 import ErrorHandler from "../../utils/ErrorHandler";
 import { ISortOrder } from "../../types/typings";
-import mongoose, { FilterQuery, PipelineStage } from "mongoose";
 import splitQuery from "../../utils/splitQuery";
 import SAMPLE_PRODUCTS from "../../lib/SAMPLE_PRODUCTS";
 import ProductService, {
     IProductOptions,
     IProductSortOptions,
+    IPublishedStatusOption,
+    IStockOptions,
 } from "../../services/ProductService";
-
-const checkBoolean = (value: any) => {
-    return typeof value === "boolean";
-};
 
 export const createProduct = expressAsyncHandler(async (req, res, next) => {
     const {
@@ -55,20 +52,8 @@ export const createProduct = expressAsyncHandler(async (req, res, next) => {
 });
 
 export const updateProduct = expressAsyncHandler(async (req, res, next) => {
-    const {
-        name,
-        description,
-        images,
-        MRP,
-        discount,
-        published,
-        colors,
-        collections,
-        attributes,
-        stock,
-        specs,
-        sku,
-    } = req.body as IProductOptions;
+    const { name, description, images, MRP, discount, published, colors, collections, attributes, stock, specs, sku } =
+        req.body as IProductOptions;
 
     const updatedProduct = await ProductService.updateProduct(req.params.id, {
         name,
@@ -106,122 +91,30 @@ export const getAllProducts = expressAsyncHandler(async (req, res, next) => {
     const sortBy = (req.query.sortby as IProductSortOptions) || "name";
     const sortOrder: ISortOrder = (req.query.sortorder as ISortOrder) || "asc";
 
-    if (
-        !["name", "updatedAt", "published", "stock", "MRP"].includes(sortBy) ||
-        !["asc", "desc"].includes(sortOrder)
-    ) {
+    if (!["name", "updatedAt", "published", "stock", "MRP"].includes(sortBy) || !["asc", "desc"].includes(sortOrder)) {
         throw new ErrorHandler("Invalid Sort Option!", 400);
     }
 
-    const search = req.query.search as string; // Get search query - {search products by name}
-    const status = req.query.status as string; // Get status query - {filter products by status}
-    const stock = req.query.stock as string; // Get stock query - {filter products by stock}
+    const search = req.query.search as string;
+    const status = req.query.status as IPublishedStatusOption;
+    const stock = req.query.stock as IStockOptions;
 
-    const page = parseInt(req.query.page as string, 10) || 1; // Get page query
-    const pageSize = parseInt(req.query.pageSize as string, 10) || 5; // Get page size query
+    const page = parseInt(req.query.page as string, 10) || 1;
+    const pageSize = parseInt(req.query.pageSize as string, 10) || 5;
 
-    // Define query object
-    let filters = {} as FilterQuery<IProduct>;
-    let pipeline: PipelineStage[] = [];
+    const { products, total, currentPage, maxPage } = await ProductService.getProductsWithPagination({
+        page,
+        pageSize,
+        search,
+        status,
+        stock,
+        sortby: sortBy,
+        sortOrder,
+    });
 
-    let sortCondition: Record<string, 1 | -1 | mongoose.Expression.Meta> = {};
-
-    // update sortQuery object based on sort query
-    if (sortBy) sortCondition[sortBy] = sortOrder === "asc" ? 1 : -1;
-
-    // if search query exists update filters object
-    if (search) {
-        filters["name"] = { $regex: new RegExp(search, "i") };
-    }
-
-    // if stock query exists - update filters object
-
-    if (stock === "IN_STOCK") {
-        filters["stock"] = {
-            $gte: 10,
-        };
-    } else if (stock === "OUT_OF_STOCK") {
-        filters["stock"] = {
-            $lt: 1,
-        };
-    } else if (stock === "LOW_STOCK") {
-        filters["stock"] = {
-            $lt: 10,
-        };
-    }
-
-    // if status query exists - update filters object
-    if (status) {
-        if (status === "true") filters["published"] = true;
-        else if (status === "false") filters["published"] = false;
-        else return next(new ErrorHandler("Invalid status value", 400));
-    }
-
-    if (filters) {
-        pipeline.push({ $match: filters });
-    }
-
-    const stopPagination = req.query.stopPagination as string;
-
-    let startFrom = 0; // Calculate skip value
-    let endAt = 5; // Calculate limit value
-
-    if (stopPagination === "true") {
-        pipeline.push({
-            $facet: {
-                products: [{ $sort: sortCondition }],
-                totalCount: [{ $count: "total" }],
-            },
-        });
-    } else {
-        // if page query exists - update skip value+
-        if (page) startFrom = (page - 1) * pageSize;
-        if (pageSize) endAt = pageSize;
-
-        pipeline.push({
-            $facet: {
-                products: [
-                    { $sort: sortCondition },
-                    { $skip: startFrom },
-                    { $limit: endAt },
-                    {
-                        $project: {
-                            name: 1,
-                            slug: 1,
-                            images: 1,
-                            MRP: 1,
-                            discount: 1,
-                            published: 1,
-                            stock: 1,
-                            updatedAt: 1,
-                        },
-                    },
-                ],
-                totalCount: [{ $count: "total" }],
-            },
-        });
-    }
-
-    const products = await Product.aggregate(pipeline);
-
-    if (!products) {
-        return next(new ErrorHandler("Failed to fetch products", 500));
-    }
-
-    // Format response
-    const total = products[0].totalCount[0]?.total || 0;
-    const _products = products[0].products;
-    const maxPage = Math.ceil(total / pageSize);
-    let currentPage = page;
-
-    if (currentPage > maxPage) {
-        currentPage = maxPage;
-    }
-
-    // Send response
     res.status(200).json({
         success: true,
-        data: _products,
+        data: products,
         total,
         currentPage,
         maxPage,
@@ -239,9 +132,7 @@ export const getProduct = expressAsyncHandler(async (req, res, next) => {
         };
     }) as any;
 
-    product.collections = product.collections?.map(
-        (collection: any) => collection._id
-    );
+    product.collections = product.collections?.map((collection: any) => collection._id);
 
     product.colors = product.colors?.map((color: any) => color._id);
 
@@ -253,11 +144,10 @@ export const getProduct = expressAsyncHandler(async (req, res, next) => {
 
 // For public users
 export const getProductFilters = expressAsyncHandler(async (req, res, next) => {
-    const { attributes, colors, collections, price } = req.query as {
+    const { attributes, colors, collections } = req.query as {
         attributes: string;
         colors: string;
         collections: string;
-        price: string;
     };
 
     const query: {
@@ -345,12 +235,8 @@ export const getProductFilters = expressAsyncHandler(async (req, res, next) => {
             ]),
         ]);
 
-        const sortedAttributes = attributes.sort((a, b) =>
-            a.name.localeCompare(b.name)
-        );
-        const sortedColors = colors.sort((a, b) =>
-            a.name.localeCompare(b.name)
-        );
+        const sortedAttributes = attributes.sort((a, b) => a.name.localeCompare(b.name));
+        const sortedColors = colors.sort((a, b) => a.name.localeCompare(b.name));
 
         res.json({
             success: true,
@@ -366,18 +252,7 @@ export const getProductFilters = expressAsyncHandler(async (req, res, next) => {
 
 export const insertProduct = expressAsyncHandler(async (req, res, next) => {
     const mprods = SAMPLE_PRODUCTS.map(async (product) => {
-        const {
-            name,
-            sku,
-            description,
-            price,
-            discount,
-            images,
-            specs,
-            attributes,
-            collections,
-            colors,
-        } = product;
+        const { name, sku, description, price, discount, images, specs, attributes, collections, colors } = product;
 
         let createFields: any = {};
 
@@ -388,8 +263,7 @@ export const insertProduct = expressAsyncHandler(async (req, res, next) => {
         if (discount) createFields["discount"] = discount;
         if (images?.length > 0) createFields["images"] = images;
 
-        if (collections && collections.length > 0)
-            createFields["collections"] = collections;
+        if (collections && collections.length > 0) createFields["collections"] = collections;
         if (colors?.length > 0) createFields["colors"] = colors;
         if (attributes?.length > 0) {
             const _attrs = attributes.map(({ category, subcategory }) => {

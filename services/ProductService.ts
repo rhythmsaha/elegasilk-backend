@@ -3,6 +3,7 @@ import Product, { IProduct } from "../models/Product.model";
 import { ISortOrder } from "../types/typings";
 import ErrorHandler from "../utils/ErrorHandler";
 import { PipelineStage } from "mongoose";
+import splitQuery from "../utils/splitQuery";
 
 export interface IProductOptions {
     name?: string;
@@ -48,9 +49,12 @@ export interface IProductQueryOptions {
 
     page?: number;
     pageSize?: number;
-    stock?: "IN_STOCK" | "OUT_OF_STOCK" | "LOW_STOCK";
-    status?: "true" | "false";
+    stock?: IStockOptions;
+    status?: IPublishedStatusOption;
 }
+
+export type IStockOptions = "IN_STOCK" | "OUT_OF_STOCK" | "LOW_STOCK" | "ALL_IN_STOCK";
+export type IPublishedStatusOption = "true" | "false";
 
 class ProductService {
     private static validateOptions(options: IProductOptions) {
@@ -84,8 +88,7 @@ class ProductService {
         if (typeof published === "boolean") fields.published = published;
         if (stock) fields.stock = stock;
         if (colors && colors.length > 0) fields.colors = colors;
-        if (collections && collections.length > 0)
-            fields.collections = collections;
+        if (collections && collections.length > 0) fields.collections = collections;
         if (attributes && attributes.length > 0)
             fields.attributes = attributes.map((attr) => ({
                 category: attr._id,
@@ -174,23 +177,13 @@ class ProductService {
 
     public static async getProductForStoreFront(slug: string) {
         const product = await this.getProductBySlug(slug);
-        const populatedProduct = await product.populate([
-            { path: "collections" },
-            { path: "colors" },
-        ]);
+        const populatedProduct = await product.populate([{ path: "collections" }, { path: "colors" }]);
 
         return populatedProduct;
     }
 
-    private static validateSortOptionsForStoreFront(
-        sortby: IProductSortOptions
-    ) {
-        const validSortOptions = [
-            "newest-first",
-            "price-high-to-low",
-            "price-low-to-high",
-            "relevant",
-        ];
+    private static validateSortOptionsForStoreFront(sortby: IProductSortOptions) {
+        const validSortOptions = ["newest-first", "price-high-to-low", "price-low-to-high", "relevant"];
 
         if (!validSortOptions.includes(sortby)) {
             throw new ErrorHandler("Invalid sort option", 400);
@@ -232,24 +225,12 @@ class ProductService {
     }
 
     private static validateQueryOptions(options: IProductQueryOptions) {
-        const {
-            sortby,
-            sortOrder,
-            search,
-            attributesQuery,
-            colorsQuery,
-            collectionsQuery,
-            page,
-            pageSize,
-            stock,
-            status,
-        } = options;
+        const { sortby, sortOrder, search, attributesQuery, colorsQuery, collectionsQuery, stock, status } = options;
 
         let filters = {} as FilterQuery<IProduct>;
         let pipeline: PipelineStage[] = [];
 
-        let sortCondition: Record<string, 1 | -1 | mongoose.Expression.Meta> =
-            {};
+        let sortCondition: Record<string, 1 | -1 | mongoose.Expression.Meta> = {};
 
         if (sortby) sortCondition[sortby] = sortOrder === "asc" ? 1 : -1;
 
@@ -269,12 +250,37 @@ class ProductService {
             filters["stock"] = {
                 $lt: 10,
             };
+        } else if (stock === "ALL_IN_STOCK") {
+            filters["stock"] = {
+                $gt: 0,
+            };
         }
 
         if (status) {
             if (status === "true") filters["published"] = true;
             else if (status === "false") filters["published"] = false;
             else throw new ErrorHandler("Invalid status value", 400);
+        }
+
+        if (attributesQuery && attributesQuery.length > 0) {
+            const _attrs = splitQuery(attributesQuery);
+            filters["attributes.subcategory"] = {
+                $in: _attrs,
+            };
+        }
+
+        if (collectionsQuery && collectionsQuery.length > 0) {
+            const _collections = splitQuery(collectionsQuery);
+            filters["collections"] = {
+                $in: _collections,
+            };
+        }
+
+        if (colorsQuery && colorsQuery.length > 0) {
+            const _colors = splitQuery(colorsQuery);
+            filters["colors"] = {
+                $in: _colors,
+            };
         }
 
         if (filters) {
@@ -284,45 +290,37 @@ class ProductService {
         return { pipeline, sortCondition };
     }
 
-    public static async getProductsWithoutPagination(
-        options: IProductQueryOptions
-    ) {
-        const {
-            sortby,
-            sortOrder,
-            search,
-            attributesQuery,
-            colorsQuery,
-            collectionsQuery,
-            stock,
-            status,
-        } = options;
-        const { pipeline, sortCondition } = this.validateQueryOptions(options);
+    public static async getProductsWithPagination(options: IProductQueryOptions, storefront: boolean = false) {
+        let { page, pageSize, sortby } = options;
 
-        pipeline.push({
-            $facet: {
-                products: [{ $sort: sortCondition }],
-                totalCount: [{ $count: "total" }],
-            },
-        });
-
-        const products = await Product.aggregate(pipeline);
-        if (!products) {
-            throw new ErrorHandler("Failed to fetch products", 400);
-        }
-
-        return products;
-    }
-
-    public static async getProductsWithPagination(
-        options: IProductQueryOptions
-    ) {
-        const { page, pageSize } = options;
         if (!page || !pageSize) {
             throw new ErrorHandler("Please provide page and pageSize", 400);
         }
 
+        if (storefront) {
+            const { sort, sortOrder } = this.validateSortOptionsForStoreFront(sortby!);
+            options.sortby = sort;
+            options.sortOrder = sortOrder;
+        }
+
         const { pipeline, sortCondition } = this.validateQueryOptions(options);
+
+        let project: any = {
+            name: 1,
+            slug: 1,
+            images: 1,
+            MRP: 1,
+            discount: 1,
+            published: 1,
+            stock: 1,
+        };
+
+        if (storefront) {
+            project["createdAt"] = 1;
+            project["ratings"] = 1;
+        } else {
+            project["updatedAt"] = 1;
+        }
 
         pipeline.push({
             $facet: {
@@ -330,6 +328,9 @@ class ProductService {
                     { $sort: sortCondition },
                     { $skip: (page - 1) * pageSize },
                     { $limit: pageSize },
+                    {
+                        $project: project,
+                    },
                 ],
                 totalCount: [{ $count: "total" }],
             },
@@ -341,7 +342,46 @@ class ProductService {
             throw new ErrorHandler("Failed to fetch products", 400);
         }
 
-        return products;
+        const total = products[0].totalCount[0]?.total || 0;
+        const _products = products[0].products;
+        const maxPage = Math.ceil(total / pageSize);
+        let currentPage = page;
+
+        if (currentPage > maxPage) {
+            currentPage = maxPage;
+        }
+
+        return { products: _products, total, currentPage, maxPage };
+    }
+
+    public static async reduceStock(productId: string, quantity: number) {
+        const product = await Product.findById(productId);
+
+        if (!product) {
+            throw new ErrorHandler("Product not found", 404);
+        }
+
+        if (product.stock < quantity) {
+            throw new ErrorHandler("Insufficient stock", 400);
+        }
+
+        product.stock -= quantity;
+        await product.save();
+
+        return product;
+    }
+
+    public static async increaseStock(productId: string, quantity: number) {
+        const product = await Product.findById(productId);
+
+        if (!product) {
+            throw new ErrorHandler("Product not found", 404);
+        }
+
+        product.stock += quantity;
+        await product.save();
+
+        return product;
     }
 }
 
