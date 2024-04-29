@@ -37,7 +37,8 @@ export type IProductSortOptions =
     | "published"
     | "stock"
     | "MRP"
-    | "createdAt";
+    | "createdAt"
+    | "price";
 
 export interface IProductQueryOptions {
     sortby?: IProductSortOptions;
@@ -200,12 +201,12 @@ class ProductService {
                 break;
             case "price-high-to-low":
                 // Get products sorted by price high to low
-                sort = "MRP";
+                sort = "price";
                 sortOrder = "desc";
                 break;
             case "price-low-to-high":
                 // Get products sorted by price low to high
-                sort = "MRP";
+                sort = "price";
                 sortOrder = "asc";
                 break;
             case "relevant":
@@ -318,9 +319,16 @@ class ProductService {
         if (storefront) {
             project["createdAt"] = 1;
             project["ratings"] = 1;
+            project["price"] = 1;
         } else {
             project["updatedAt"] = 1;
         }
+
+        pipeline.push({
+            $addFields: {
+                price: { $subtract: ["$MRP", { $multiply: [{ $divide: ["$discount", 100] }, "$MRP"] }] },
+            },
+        });
 
         pipeline.push({
             $facet: {
