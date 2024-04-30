@@ -13,7 +13,7 @@ export const getProductsForStoreFront = expressAsyncHandler(async (req, res, nex
     const collectionsQuery = req.query.collections as string;
 
     const page = parseInt(req.query.page as string, 10) || 1;
-    const pageSize = parseInt(req.query.pageSize as string, 10) || 30;
+    const pageSize = parseInt(req.query.pagesize as string, 10) || 30;
 
     if (!["newest-first", "price-high-to-low", "price-low-to-high", "relevant"].includes(sortQuery)) {
         throw new ErrorHandler("Invalid Sort Option!", 400);
@@ -35,7 +35,10 @@ export const getProductsForStoreFront = expressAsyncHandler(async (req, res, nex
         true
     );
 
+    // const filter = await ProductService.getFilters({ attributesQuery, colorsQuery, collectionsQuery });
+
     res.status(200).json({
+        // filter,
         success: true,
         data: products,
         total,

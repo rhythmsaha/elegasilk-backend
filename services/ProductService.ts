@@ -230,8 +230,13 @@ class ProductService {
 
         let filters = {} as FilterQuery<IProduct>;
         let pipeline: PipelineStage[] = [];
-
         let sortCondition: Record<string, 1 | -1 | mongoose.Expression.Meta> = {};
+
+        pipeline.push({
+            $addFields: {
+                price: { $subtract: ["$MRP", { $round: [{ $multiply: [{ $divide: ["$discount", 100] }, "$MRP"] }] }] },
+            },
+        });
 
         if (sortby) sortCondition[sortby] = sortOrder === "asc" ? 1 : -1;
 
@@ -264,7 +269,16 @@ class ProductService {
         }
 
         if (attributesQuery && attributesQuery.length > 0) {
+            pipeline.push({
+                $unwind: "$attributes",
+            });
+
+            pipeline.push({
+                $unwind: "$attributes.subcategory",
+            });
+
             const _attrs = splitQuery(attributesQuery);
+            console.log(_attrs);
             filters["attributes.subcategory"] = {
                 $in: _attrs,
             };
@@ -272,6 +286,7 @@ class ProductService {
 
         if (collectionsQuery && collectionsQuery.length > 0) {
             const _collections = splitQuery(collectionsQuery);
+
             filters["collections"] = {
                 $in: _collections,
             };
@@ -288,7 +303,7 @@ class ProductService {
             pipeline.push({ $match: filters });
         }
 
-        return { pipeline, sortCondition };
+        return { pipeline, sortCondition, filters };
     }
 
     public static async getProductsWithPagination(options: IProductQueryOptions, storefront: boolean = false) {
@@ -325,12 +340,6 @@ class ProductService {
         }
 
         pipeline.push({
-            $addFields: {
-                price: { $subtract: ["$MRP", { $multiply: [{ $divide: ["$discount", 100] }, "$MRP"] }] },
-            },
-        });
-
-        pipeline.push({
             $facet: {
                 products: [
                     { $sort: sortCondition },
@@ -340,6 +349,7 @@ class ProductService {
                         $project: project,
                     },
                 ],
+
                 totalCount: [{ $count: "total" }],
             },
         });
@@ -390,6 +400,144 @@ class ProductService {
         await product.save();
 
         return product;
+    }
+
+    public static async getFilters(options: IProductQueryOptions) {
+        const { attributesQuery, colorsQuery, collectionsQuery } = options;
+
+        const query: {
+            [key: string]: any;
+        } = {};
+
+        if (attributesQuery) {
+            const _attrs = splitQuery(attributesQuery);
+            query["attributes.subcategory"] = {
+                $in: _attrs,
+            };
+        }
+
+        if (collectionsQuery) {
+            const _collections = splitQuery(collectionsQuery);
+            query["collections"] = {
+                $in: _collections,
+            };
+        }
+
+        if (colorsQuery) {
+            const _colors = splitQuery(colorsQuery);
+            query["colors"] = {
+                $in: _colors,
+            };
+        }
+
+        let [colors, attributes] = await Promise.all([
+            Product.aggregate([
+                { $match: query },
+
+                { $unwind: "$colors" },
+                {
+                    $lookup: {
+                        from: "colors",
+                        localField: "colors",
+                        foreignField: "_id",
+                        as: "color",
+                    },
+                },
+
+                { $unwind: "$color" },
+
+                {
+                    $group: {
+                        _id: "$color._id",
+                        name: { $first: "$color.name" },
+                        hex: { $first: "$color.hex" },
+                        count: { $sum: 1 },
+                    },
+                },
+
+                {
+                    $project: {
+                        _id: 1,
+                        name: 1,
+                        hex: 1,
+                        count: 1,
+                    },
+                },
+
+                { $sort: { name: 1 } },
+            ]),
+
+            Product.aggregate([
+                { $match: query },
+                { $unwind: "$attributes" },
+                { $unwind: "$attributes.subcategory" },
+                {
+                    $lookup: {
+                        from: "categories",
+                        localField: "attributes.category",
+                        foreignField: "_id",
+                        as: "attributes.category",
+                    },
+                },
+                {
+                    $lookup: {
+                        from: "subcategories",
+                        localField: "attributes.subcategory",
+                        foreignField: "_id",
+                        as: "attributes.subcategory",
+                    },
+                },
+
+                { $unwind: "$attributes.category" },
+                { $unwind: "$attributes.subcategory" },
+
+                {
+                    $group: {
+                        _id: "$attributes.subcategory._id",
+                        category: { $first: "$attributes.category" },
+                        name: { $first: "$attributes.subcategory.name" },
+                        count: { $sum: 1 },
+                    },
+                },
+
+                {
+                    $project: {
+                        _id: 1,
+                        count: 1,
+                        name: 1,
+                        category_name: "$category.name",
+                        category_id: "$category._id",
+                    },
+                },
+
+                {
+                    $group: {
+                        _id: "$category_id",
+                        name: { $first: "$category_name" },
+
+                        subcategories: {
+                            $addToSet: {
+                                _id: "$_id",
+                                name: "$name",
+                                count: "$count",
+                            },
+                        },
+                    },
+                },
+
+                {
+                    $project: {
+                        _id: 1,
+                        name: 1,
+                        subcategories: 1,
+                    },
+                },
+
+                { $sort: { name: 1 } },
+            ]),
+        ]);
+
+        return { colors, attributes };
     }
 }
 
